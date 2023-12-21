@@ -2,7 +2,9 @@
 
 ## Get the repo
 `cd <path/to/where/you/want/the/repo>`
+
 `git clone https://github.com/JohannaTrost/VegSWBM.git`
+
 `cd VegSWBM`
 
 ## Tracking changes
