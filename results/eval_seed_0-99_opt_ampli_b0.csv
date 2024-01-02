@@ -1,0 +1,5 @@
+,model,kind,corr,pval
+0,Constant,sm,0.878,0.0
+1,Constant,ro,0.484,0.0
+2,Seasonal Beta,sm,0.88,0.0
+3,Seasonal Beta,ro,0.487,0.0

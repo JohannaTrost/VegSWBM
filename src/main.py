@@ -1,26 +1,67 @@
 from scipy.stats import pearsonr
+from scipy.optimize import minimize
 
 from src.swbm import *
 from src.plots import *
 from src.utils import *
 
+
+def cost_fun(amplis, data):
+    ampli = amplis[0]
+    # Set parameter values
+    params = {'c_s': 420,
+              'b0': seasonal_sinus(len(data['time']), amplitude=ampli),
+              'g': .5, 'a': 4}
+    # Run SWBM
+    moists, runoffs, ets = predict_ts(data, params)
+    out_swbm = {'sm': moists, 'ro': runoffs, 'et': ets}
+
+    # evaluate
+    #print(f'\nampli={ampli}')
+    score = 0
+    for key in ['sm', 'ro']:
+        corr, p = pearsonr(out_swbm[key], data[key])
+        #print(f'{key}: corr={corr}, P={p}')
+        score += corr
+    return score * - 1  # to get maximum
+
+
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
-# Set parameter values
-params_seasonal = {'c_s': 420,
-                   'b0': seasonal_sinus(len(input_swbm['time']), amplitude=0.5),
-                   'g': .5, 'a': 4}
-params = params_seasonal.copy()
-params['b0'] = 0.8
+# vary initial value for amplitude of b0 sinus curve, try diff. random seeds
+results = {'init': [], 'ampli': [], 'score': []}
+for ampli_sin_b0 in [0.0000001, 0.5, 1]:
+    for i in range(100):
+        # run optimizer
+        np.random.seed(i)
+        res = minimize(cost_fun, [ampli_sin_b0], args=input_swbm,
+                       options={"maxiter": 100,
+                                "disp": True})
+        # results
+        results['init'].append(ampli_sin_b0)
+        results['ampli'].append(res['x'][0])
+        results['score'].append(res['fun'] * -1)
 
+results = pd.DataFrame(results)
+results.to_csv('results/seed_0-99_opt_ampli_b0.csv')
+
+# ---- Evaluation
+
+opt_ampli = np.mean(results['ampli'])
+
+params = {'c_s': 420,
+          'b0': 0.8,
+          'g': .5, 'a': 4}
+params_seasonal = {'c_s': 420,
+                   'b0': seasonal_sinus(len(input_swbm), amplitude=opt_ampli),
+                   'g': .5, 'a': 4}
 # Run SWBM
 moists, runoffs, ets = predict_ts(input_swbm, params)
 moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
                                                              params_seasonal)
 
-# evaluate
 output_swbm = {'sm': moists, 'ro': runoffs, 'et': ets}
 output_swbm_seasonal = {'sm': moists_seasonal,
                         'ro': runoffs_seasonal,
@@ -37,7 +78,9 @@ for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
         eval['model'].append(model)
         eval['kind'].append(key)
 
-print(np.round(pd.DataFrame(eval), 3))
+eval_df = np.round(pd.DataFrame(eval), 3)
+print(eval_df)
+eval_df.to_csv('results/eval_seed_0-99_opt_ampli_b0.csv')
 
 # -- some plots
 
@@ -80,4 +123,3 @@ ax.set_ylabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
 plt.savefig('figs/b0_seasonal_ts_2010.pdf')
-
