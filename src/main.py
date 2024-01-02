@@ -6,57 +6,52 @@ from src.plots import *
 from src.utils import *
 
 
-def cost_fun(amplis, data):
-    ampli = amplis[0]
+def cost_fun(inits, data):
     # Set parameter values
     params = {'c_s': 420,
-              'b0': seasonal_sinus(len(data['time']), amplitude=ampli),
+              'b0': seasonal_sinus(len(data['time']),
+                                   amplitude=inits[0],
+                                   freq=inits[1],
+                                   phase=inits[2],
+                                   center=inits[3]),
               'g': .5, 'a': 4}
     # Run SWBM
-    moists, runoffs, ets = predict_ts(data, params)
-    out_swbm = {'sm': moists, 'ro': runoffs, 'et': ets}
+    out_sm, _, _ = predict_ts(data, params)
+    corr_sm, p_sm = pearsonr(out_sm, data['sm'])
 
-    # evaluate
-    #print(f'\nampli={ampli}')
-    score = 0
-    for key in ['sm', 'ro']:
-        corr, p = pearsonr(out_swbm[key], data[key])
-        #print(f'{key}: corr={corr}, P={p}')
-        score += corr
-    return score * - 1  # to get maximum
+    if p_sm > 0.05:
+        print(f'No corr. P={p_sm}')
+
+    return corr_sm * -1  # to get maximum
 
 
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
-# vary initial value for amplitude of b0 sinus curve, try diff. random seeds
-results = {'init': [], 'ampli': [], 'score': []}
-for ampli_sin_b0 in [0.0000001, 0.5, 1]:
-    for i in range(100):
-        # run optimizer
-        np.random.seed(i)
-        res = minimize(cost_fun, [ampli_sin_b0], args=input_swbm,
-                       options={"maxiter": 100,
-                                "disp": True})
-        # results
-        results['init'].append(ampli_sin_b0)
-        results['ampli'].append(res['x'][0])
-        results['score'].append(res['fun'] * -1)
+init_sinus_params = [0.5, 2, 5, 0.8]
 
-results = pd.DataFrame(results)
-results.to_csv('results/seed_0-99_opt_ampli_b0.csv')
+np.random.seed(42)
+res = minimize(cost_fun, init_sinus_params, args=input_swbm,
+               options={"maxiter": 100,
+                        "disp": True})
+
+print(f"Optimal beta sinus parameters:\n"
+      f"\tamplitude={np.round(res['x'][0], 3)}\n"
+      f"\tfreq={np.round(res['x'][1], 3)}\n"
+      f"\tphase={np.round(res['x'][2], 3)}\n"
+      f"\tcenter={np.round(res['x'][3], 3)}")
 
 # ---- Evaluation
+opt_sinus_b0 = seasonal_sinus(len(input_swbm),
+                              amplitude=res['x'][0],
+                              freq=res['x'][1],
+                              phase=res['x'][2],
+                              center=res['x'][3])
+# Set swbm params
+params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
+params_seasonal = {'c_s': 420, 'b0': opt_sinus_b0, 'g': .5, 'a': 4}
 
-opt_ampli = np.mean(results['ampli'])
-
-params = {'c_s': 420,
-          'b0': 0.8,
-          'g': .5, 'a': 4}
-params_seasonal = {'c_s': 420,
-                   'b0': seasonal_sinus(len(input_swbm), amplitude=opt_ampli),
-                   'g': .5, 'a': 4}
 # Run SWBM
 moists, runoffs, ets = predict_ts(input_swbm, params)
 moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
@@ -78,31 +73,14 @@ for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
         eval['model'].append(model)
         eval['kind'].append(key)
 
-eval_df = np.round(pd.DataFrame(eval), 3)
-print(eval_df)
-eval_df.to_csv('results/eval_seed_0-99_opt_ampli_b0.csv')
+eval_df = pd.DataFrame(eval)
+print(np.round(eval_df, 3))
 
 # -- some plots
 
 # only show one year
 input_swbm['time'] = [arrow.get(date) for date in input_swbm['time']]
 year_mask = [date.year == 2010 for date in input_swbm['time']]
-
-fig, ax = plt.subplots()
-ax.set_title('Beta = 0.8')
-plot_relation(moists[year_mask], ets[year_mask], runoffs[year_mask], ax)
-ax.set_xlabel('Soil moisture(mm)')
-plt.legend()
-plt.tight_layout()
-plt.savefig('figs/b0_0.8_rel.pdf')
-
-fig, ax = plt.subplots()
-ax.set_title('Beta = 0.8')
-plot_time_series(moists[year_mask], ets[year_mask], runoffs[year_mask], ax)
-ax.set_ylabel('Soil moisture(mm)')
-plt.legend()
-plt.tight_layout()
-plt.savefig('figs/b0_0.8_ts_2010.pdf')
 
 fig, ax = plt.subplots()
 ax.set_title('Seasonal Beta')
@@ -113,7 +91,7 @@ ax.scatter(moists_seasonal[year_mask],
 ax.set_xlabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
-plt.savefig('figs/b0_seasonal_rel.pdf')
+# plt.savefig('figs/b0_seasonal_rel.pdf')
 
 fig, ax = plt.subplots()
 ax.set_title('Seasonal Beta')
@@ -122,4 +100,4 @@ plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
 ax.set_ylabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
-plt.savefig('figs/b0_seasonal_ts_2010.pdf')
+# plt.savefig('figs/b0_seasonal_ts_2010.pdf')
