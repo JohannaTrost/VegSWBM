@@ -1,77 +1,83 @@
-import arrow
-import pandas as pd
+from scipy.stats import pearsonr
 
-from smbw import *
-from plots import *
+from src.swbm import *
+from src.plots import *
+from src.utils import *
 
-input_swbm = pd.read_csv('data/input_swbm.csv')
+# Load and pre-process data
+input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
+input_swbm = prepro(input_swbm_raw)
 
-input_swbm['time'] = [arrow.get(date) for date in input_swbm['time']]
+# Set parameter values
+params_seasonal = {'c_s': 420,
+                   'b0': seasonal_sinus(len(input_swbm['time']), amplitude=0.5),
+                   'g': .5, 'a': 4}
+params = params_seasonal.copy()
+params['b0'] = 0.8
 
-# set parameter values
-params = {'c_s': 420,
-          'b0': seasonal_sinus(len(input_swbm['time']), amplitude=0.5),
-          'g': .5, 'a': 4}
+# Run SWBM
+moists, runoffs, ets = predict_ts(input_swbm, params)
+moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
+                                                             params_seasonal)
 
-R = input_swbm['snr_[MJ/m2]'] * (1 / 2.26)
-P = input_swbm['tp_[mm]']
+# evaluate
+output_swbm = {'sm': moists, 'ro': runoffs, 'et': ets}
+output_swbm_seasonal = {'sm': moists_seasonal,
+                        'ro': runoffs_seasonal,
+                        'et': ets_seasonal}
 
-# extract parameters
-c_s, b0, g, a = params['c_s'], params['b0'], params['g'], params['a']
+eval = {'model': [], 'kind': [], 'corr': [], 'pval': []}
+for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
+                           [output_swbm, output_swbm_seasonal]):
+    for key in ['sm', 'ro']:
+        corr, p = pearsonr(out_swbm[key], input_swbm[key])
 
-n_days = input_swbm.shape[0]
+        eval['corr'].append(corr)
+        eval['pval'].append(p)
+        eval['model'].append(model)
+        eval['kind'].append(key)
 
-# -- run model for given params
-moists, runoffs, ets = np.zeros(n_days), np.zeros(n_days), np.zeros(n_days)
+print(np.round(pd.DataFrame(eval), 3))
 
-ets_seasonal, moists_seasonal = np.zeros(n_days), np.zeros(n_days)
-runoffs_seasonal = np.zeros(n_days)
-
-# initial moisture
-moists[0] = 0.9 * params['c_s']  # 90% of soil water holding capacity
-moists_seasonal[0] = 0.9 * params['c_s']
-
-for i in range(n_days):
-    ets_seasonal[i] = et(b0[i], moists_seasonal[i], c_s, g)
-    runoffs_seasonal[i] = runoff(moists_seasonal[i], c_s, a)
-
-    ets[i] = et(0.8, moists[i], c_s, g)
-    runoffs[i] = runoff(moists[i], c_s, a)
-
-    if i < n_days - 1:
-        moists[i + 1] = predict(moists[i], ets[i], runoffs[i], P[i], R[i])
-        moists_seasonal[i + 1] = predict(moists_seasonal[i],
-                                         ets_seasonal[i],
-                                         runoffs_seasonal[i], P[i],
-                                         R[i])
+# -- some plots
 
 # only show one year
 input_swbm['time'] = [arrow.get(date) for date in input_swbm['time']]
 year_mask = [date.year == 2010 for date in input_swbm['time']]
 
-fig, ax = plt.subplots(2, 2, figsize=(15, 9))
-
-ax[0, 0].set_title('Beta = 0.8')
-plot_relation(moists[year_mask], ets[year_mask], runoffs[year_mask], ax[0, 0])
-plot_time_series(moists[year_mask], ets[year_mask], runoffs[year_mask],
-                 ax[0, 1])
-
-ax[1, 0].set_title('Seasonal Beta')
-ax[1, 0].scatter(moists_seasonal[year_mask],
-                 ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
-ax[1, 0].scatter(moists_seasonal[year_mask],
-                 runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
-plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
-                 runoffs[year_mask], ax[1, 1])
-
-ax[1, 1].set_ylabel('Soil moisture(mm)')
-ax[0, 1].set_ylabel('Soil moisture(mm)')
-ax[0, 0].set_xlabel('Soil moisture(mm)')
-ax[1, 0].set_xlabel('Soil moisture(mm)')
-
-for i in range(4):
-    ax[np.unravel_index(i, (2, 2))].legend()
+fig, ax = plt.subplots()
+ax.set_title('Beta = 0.8')
+plot_relation(moists[year_mask], ets[year_mask], runoffs[year_mask], ax)
+ax.set_xlabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
+plt.savefig('figs/b0_0.8_rel.pdf')
 
-# TODO save plots and vary amplitude !!
+fig, ax = plt.subplots()
+ax.set_title('Beta = 0.8')
+plot_time_series(moists[year_mask], ets[year_mask], runoffs[year_mask], ax)
+ax.set_ylabel('Soil moisture(mm)')
+plt.legend()
+plt.tight_layout()
+plt.savefig('figs/b0_0.8_ts_2010.pdf')
+
+fig, ax = plt.subplots()
+ax.set_title('Seasonal Beta')
+ax.scatter(moists_seasonal[year_mask],
+           ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
+ax.scatter(moists_seasonal[year_mask],
+           runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
+ax.set_xlabel('Soil moisture(mm)')
+plt.legend()
+plt.tight_layout()
+plt.savefig('figs/b0_seasonal_rel.pdf')
+
+fig, ax = plt.subplots()
+ax.set_title('Seasonal Beta')
+plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
+                 runoffs[year_mask], ax)
+ax.set_ylabel('Soil moisture(mm)')
+plt.legend()
+plt.tight_layout()
+plt.savefig('figs/b0_seasonal_ts_2010.pdf')
+

@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-from smbw import seasonal_sinus
+from src.swbm import seasonal_sinus
 
 # Generating date range (for example, one year)
 start_date = '2023-01-01'

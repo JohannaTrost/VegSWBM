@@ -1,5 +1,6 @@
 from matplotlib import pylab as plt
 
+
 def plot_time_series(soil_moist, evapo_trans, prec_runoff, ax):
     ax2 = ax.twinx()
     ax.plot(soil_moist, color='g')
