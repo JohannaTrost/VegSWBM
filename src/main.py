@@ -1,3 +1,6 @@
+#%%
+#os.chdir('..')
+#%%
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
 
