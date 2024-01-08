@@ -6,15 +6,13 @@ from src.plots import *
 from src.utils import *
 
 
-def cost_fun(inits, data):
-    # Set parameter values
-    params = {'c_s': 420,
-              'b0': seasonal_sinus(len(data['time']),
-                                   amplitude=inits[0],
-                                   freq=inits[1],
-                                   phase=inits[2],
-                                   center=inits[3]),
-              'g': .5, 'a': 4}
+def opt_swbm_corr(inits, data, params, seasonal_param):
+    # Set seasonal parameters
+    params[seasonal_param] = seasonal_sinus(len(data['time']),
+                                            amplitude=inits[0],
+                                            freq=inits[1],
+                                            phase=inits[2],
+                                            center=inits[3])
     # Run SWBM
     out_sm, _, _ = predict_ts(data, params)
     corr_sm, p_sm = pearsonr(out_sm, data['sm'])
@@ -29,10 +27,13 @@ def cost_fun(inits, data):
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
+# initialize parameters and sinus params
+config = {'c_s': 420, 'b0': .8, 'g': .5, 'a': 4}
 init_sinus_params = [0.5, 2, 5, 0.8]
 
 np.random.seed(42)
-res = minimize(cost_fun, init_sinus_params, args=input_swbm,
+res = minimize(opt_swbm_corr, init_sinus_params,
+               args=(input_swbm, config, 'b0'),
                options={"maxiter": 100,
                         "disp": True})
 
