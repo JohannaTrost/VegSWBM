@@ -51,10 +51,10 @@ def predict_ts(data, config, n_days=None):
     curr = {}  # to temporarily store parameters in loop
 
     # initial moisture (90% of soil water holding capacity)
-    if isinstance(config['c_s'], list):
-        moists[0] = 0.9 * config['c_s'][0]
-    else:
+    if isinstance(config['c_s'], (float, int)):
         moists[0] = 0.9 * config['c_s']
+    else:
+        moists[0] = 0.9 * config['c_s'][0]
 
     for i in range(n_days):
 

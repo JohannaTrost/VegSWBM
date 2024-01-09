@@ -1,6 +1,6 @@
-#%%
+# %%
 os.chdir('..')
-#%%
+# %%
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
 
@@ -8,7 +8,8 @@ from src.swbm import *
 from src.plots import *
 from src.utils import *
 
-#%%
+
+# %%
 def opt_swbm_corr(inits, data, params, seasonal_param):
     """ Calculates correlation between Swbm with sesonal parameter variation and thrue values
 
@@ -34,19 +35,20 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     return corr_sm * -1  # to get maximum
 
 
-#%%
+# %%
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
-#%%
-# initialize parameters and sinus params
-config = {'c_s': 420, 'b0': .8, 'g': .5, 'a': 4}
-init_sinus_params = [0.5, 2, 5, 0.8]
+# %%
+
+config = {'c_s': 420, 'b0': 0.8, 'g': 0.5, 'a': 4}
+init_sinus_params = [0.5, 2, 5, 420]
+make_seasonal = 'c_s'
 
 np.random.seed(42)
 res = minimize(opt_swbm_corr, init_sinus_params,
-               args=(input_swbm, config, 'b0'),
+               args=(input_swbm, config, make_seasonal),
                options={"maxiter": 100,
                         "disp": True})
 
@@ -56,19 +58,19 @@ print(f"Optimal beta sinus parameters:\n"
       f"\tphase={np.round(res['x'][2], 3)}\n"
       f"\tcenter={np.round(res['x'][3], 3)}")
 
-#%%
+# %%
 # ---- Evaluation
 opt_sinus_b0 = seasonal_sinus(len(input_swbm),
                               amplitude=res['x'][0],
                               freq=res['x'][1],
                               phase=res['x'][2],
                               center=res['x'][3])
-#%%
+# %%
 # Set swbm params
 params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
 params_seasonal = {'c_s': 420, 'b0': opt_sinus_b0, 'g': .5, 'a': 4}
 
-#%%
+# %%
 # Run SWBM
 moists, runoffs, ets = predict_ts(input_swbm, params)
 moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
@@ -93,7 +95,7 @@ for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
 eval_df = pd.DataFrame(eval)
 print(np.round(eval_df, 3))
 
-#%%
+# %%
 # -- some plots
 
 # only show one year
