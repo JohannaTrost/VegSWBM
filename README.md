@@ -7,6 +7,48 @@
 
 `cd VegSWBM`
 
+
+## Approach:
+
+-> seasonal variation for beta gamma alpha and c_s
+
+-> seasonal variation in form of sinus function
+
+-> optimizing sinus function parameters (amplitude, frequency, phase and offset) for best possible correlation between Swbm output and true values (soil moisture and evapotranspiration)
+
+
+## to do:
+-> check if range of seasonal variation of parameters are physicly possible
+
+-> if not adjust ie. add conditions to function parameters (maximum amplitude)
+
+-> fix cetrain sinus function paramters (ie. phase)
+
+-> weighted importance of correlation for sm and et
+
+-> test model on diffrent datasets 
+
+-> split data in test and training set
+
+-> test diffrent random seeds
+
+## thoughts for the poster:
+-> plot comparing model output and true values 
+-> for all 3 datasets?
+
+-> table with correlations
+
+-> plot seasonal variation of certain parameters
+
+-> compare sinus functions of parameters
+
+-> plot influance of seasonal variation
+
+-> try to explain what the seasonal variation does 
+
+
+
+
 ## Tracking changes
 
 1. `git status` - prints your changes and all necessary information.
@@ -19,4 +61,5 @@
 Now, your changes are well tracked! But only on you local computer! You need to push them to the remote repo to make them available for everyone:
 
 7. `git push`
+
 
