@@ -1,5 +1,5 @@
 # %%
-os.chdir('..')
+# os.chdir('..')
 # %%
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
@@ -11,20 +11,31 @@ from src.utils import *
 
 # %%
 def opt_swbm_corr(inits, data, params, seasonal_param):
-    """ Calculates correlation between Swbm with sesonal parameter variation and thrue values
+    """ Calculates correlation between Swbm with sesonal parameter variation
+    and true values
 
     :param inits: initial parameters for seasonal sinus function
-    :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le, snr)
-    :param params: parameters for Swbm (look predict_ts)
-    :param seasonal_param: parameter to set seasonal (str)
+    :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le,
+                 snr)
+    :param params: parameters for Swbm (look predict_ts), can be empty dict if
+                   all parameters will be seasonal
+    :param seasonal_param: parameter(s) to set seasonal (str or list)
     :return: correlation
     """
-    # Set seasonal parameters
-    params[seasonal_param] = seasonal_sinus(len(data['time']),
-                                            amplitude=inits[0],
-                                            freq=inits[1],
-                                            phase=inits[2],
-                                            center=inits[3])
+    # if single parameters is given make list
+    seasonal_param = ([seasonal_param] if isinstance(seasonal_param, str)
+                      else seasonal_param)
+
+    inits = np.reshape(inits, (len(seasonal_param), 4))
+    # (no. SWBM params. x no. sinus params.)
+
+    # Make seasonal parameters
+    for param, sinus_init in zip(seasonal_param, inits):
+        params[param] = seasonal_sinus(len(data),
+                                       amplitude=sinus_init[0],
+                                       freq=sinus_init[1],
+                                       phase=sinus_init[2],
+                                       center=sinus_init[3])
     # Run SWBM
     out_sm, _, _ = predict_ts(data, params)
     corr_sm, p_sm = pearsonr(out_sm, data['sm'])
@@ -41,14 +52,17 @@ input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
 # %%
-
-config = {'c_s': 420, 'b0': 0.8, 'g': 0.5, 'a': 4}
-init_sinus_params = [0.5, 2, 5, 420]
-make_seasonal = 'c_s'
+# initialize parameters and sinus params
+init_sinus_params = [[0.5, 2, 5, 420],  # c_s (amplitude, freq, phase, center)
+                     [0.5, 2, 5, 0.8],  # b0 -> max. ET
+                     [0.5, 2, 5, 0.5],  # g -> ET function shape
+                     [1, 2, 5, 4]]  # a -> runoff function shape
+make_seasonal = ['c_s', 'b0', 'g', 'a']
 
 np.random.seed(42)
-res = minimize(opt_swbm_corr, init_sinus_params,
-               args=(input_swbm, config, make_seasonal),
+res = minimize(opt_swbm_corr,
+               np.asarray(init_sinus_params).flatten(),  # has to be 1D
+               args=(input_swbm, {}, make_seasonal),
                options={"maxiter": 100,
                         "disp": True})
 
@@ -60,15 +74,15 @@ print(f"Optimal beta sinus parameters:\n"
 
 # %%
 # ---- Evaluation
-opt_sinus_b0 = seasonal_sinus(len(input_swbm),
-                              amplitude=res['x'][0],
-                              freq=res['x'][1],
-                              phase=res['x'][2],
-                              center=res['x'][3])
+opt_sinus = seasonal_sinus(len(input_swbm),
+                           amplitude=res['x'][0],
+                           freq=res['x'][1],
+                           phase=res['x'][2],
+                           center=res['x'][3])
 # %%
 # Set swbm params
 params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
-params_seasonal = {'c_s': 420, 'b0': opt_sinus_b0, 'g': .5, 'a': 4}
+params_seasonal = {'c_s': opt_sinus, 'b0': 0.8, 'g': .5, 'a': 4}
 
 # %%
 # Run SWBM
@@ -76,15 +90,15 @@ moists, runoffs, ets = predict_ts(input_swbm, params)
 moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
                                                              params_seasonal)
 
-output_swbm = {'sm': moists, 'ro': runoffs, 'et': ets}
+output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
 output_swbm_seasonal = {'sm': moists_seasonal,
                         'ro': runoffs_seasonal,
-                        'et': ets_seasonal}
+                        'le': ets_seasonal}
 
 eval = {'model': [], 'kind': [], 'corr': [], 'pval': []}
 for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
                            [output_swbm, output_swbm_seasonal]):
-    for key in ['sm', 'ro']:
+    for key in ['sm', 'ro', 'le']:
         corr, p = pearsonr(out_swbm[key], input_swbm[key])
 
         eval['corr'].append(corr)
