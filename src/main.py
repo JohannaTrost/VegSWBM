@@ -1,5 +1,5 @@
 #%%
-#os.chdir('..')
+os.chdir('..')
 #%%
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
@@ -8,8 +8,16 @@ from src.swbm import *
 from src.plots import *
 from src.utils import *
 
-
+#%%
 def opt_swbm_corr(inits, data, params, seasonal_param):
+    """ Calculates correlation between Swbm with sesonal parameter variation and thrue values
+
+    :param inits: initial parameters for seasonal sinus function
+    :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le, snr)
+    :param params: parameters for Swbm (look predict_ts)
+    :param seasonal_param: 
+    :return: correlation
+    """
     # Set seasonal parameters
     params[seasonal_param] = seasonal_sinus(len(data['time']),
                                             amplitude=inits[0],
@@ -26,10 +34,12 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     return corr_sm * -1  # to get maximum
 
 
+#%%
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
+#%%
 # initialize parameters and sinus params
 config = {'c_s': 420, 'b0': .8, 'g': .5, 'a': 4}
 init_sinus_params = [0.5, 2, 5, 0.8]
@@ -46,16 +56,19 @@ print(f"Optimal beta sinus parameters:\n"
       f"\tphase={np.round(res['x'][2], 3)}\n"
       f"\tcenter={np.round(res['x'][3], 3)}")
 
+#%%
 # ---- Evaluation
 opt_sinus_b0 = seasonal_sinus(len(input_swbm),
                               amplitude=res['x'][0],
                               freq=res['x'][1],
                               phase=res['x'][2],
                               center=res['x'][3])
+#%%
 # Set swbm params
 params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
 params_seasonal = {'c_s': 420, 'b0': opt_sinus_b0, 'g': .5, 'a': 4}
 
+#%%
 # Run SWBM
 moists, runoffs, ets = predict_ts(input_swbm, params)
 moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
@@ -80,6 +93,7 @@ for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
 eval_df = pd.DataFrame(eval)
 print(np.round(eval_df, 3))
 
+#%%
 # -- some plots
 
 # only show one year
