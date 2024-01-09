@@ -15,7 +15,7 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     :param inits: initial parameters for seasonal sinus function
     :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le, snr)
     :param params: parameters for Swbm (look predict_ts)
-    :param seasonal_param: 
+    :param seasonal_param: parameter to set seasonal (str)
     :return: correlation
     """
     # Set seasonal parameters
