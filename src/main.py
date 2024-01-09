@@ -1,6 +1,7 @@
 # %%
 # os.chdir('..')
 # %%
+import seaborn as sns
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
 
@@ -35,13 +36,17 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
                                        amplitude=sinus_init[0],
                                        freq=sinus_init[1],
                                        phase=sinus_init[2],
-                                       center=sinus_init[3])
+                                       center=sinus_init[3],
+                                       which=param)
+
     # Run SWBM
     out_sm, _, _ = predict_ts(data, params)
     corr_sm, p_sm = pearsonr(out_sm, data['sm'])
 
     if p_sm > 0.05:
         print(f'No corr. P={p_sm}')
+    else:
+        print(corr_sm)
 
     return corr_sm * -1  # to get maximum
 
@@ -53,36 +58,59 @@ input_swbm = prepro(input_swbm_raw)
 
 # %%
 # initialize parameters and sinus params
-init_sinus_params = [[0.5, 2, 5, 420],  # c_s (amplitude, freq, phase, center)
-                     [0.5, 2, 5, 0.8],  # b0 -> max. ET
-                     [0.5, 2, 5, 0.5],  # g -> ET function shape
-                     [1, 2, 5, 4]]  # a -> runoff function shape
-make_seasonal = ['c_s', 'b0', 'g', 'a']
+init_sinus_params_all = [[0.5, 2, 5, 420],
+                         # c_s (amplitude, freq, phase, center)
+                         [0.5, 2, 5, 0.8],  # b0 -> max. ET
+                         [0.1, 2, 5, 0.5],  # g -> ET function shape
+                         [1, 2, 5, 4]]  # a -> runoff function shape
+make_seasonal_all = ['c_s', 'b0', 'g', 'a']
 
 np.random.seed(42)
-res = minimize(opt_swbm_corr,
-               np.asarray(init_sinus_params).flatten(),  # has to be 1D
-               args=(input_swbm, {}, make_seasonal),
-               options={"maxiter": 100,
-                        "disp": True})
+res_all = minimize(opt_swbm_corr,
+                   np.asarray(init_sinus_params_all).flatten(),  # has to be 1D
+                   args=(input_swbm, {}, make_seasonal_all),
+                   options={"maxiter": 500, "disp": True})
 
-print(f"Optimal beta sinus parameters:\n"
-      f"\tamplitude={np.round(res['x'][0], 3)}\n"
-      f"\tfreq={np.round(res['x'][1], 3)}\n"
-      f"\tphase={np.round(res['x'][2], 3)}\n"
-      f"\tcenter={np.round(res['x'][3], 3)}")
+# print optimized sinus parameters
+opt_params_all = np.reshape(res_all['x'], (len(make_seasonal_all), 4))
+# (no. SWBM params. x no. sinus params.)
+opt_params_all_df = {p: val for p, val in
+                     zip(make_seasonal_all, opt_params_all)}
+opt_params_all_df = pd.DataFrame(opt_params_all_df,
+                                 index=['amplitude', 'freq', 'phase', 'center'])
+print(opt_params_all_df)
+
+# get optimized seasonal SWBM parameters
+opt_sinus_all = {}
+for swbm_param in opt_params_all_df:
+    opt_sinus_all[swbm_param] = seasonal_sinus(
+        len(input_swbm),
+        amplitude=opt_params_all_df.loc['amplitude', swbm_param],
+        freq=opt_params_all_df.loc['freq', swbm_param],
+        phase=opt_params_all_df.loc['phase', swbm_param],
+        center=opt_params_all_df.loc['center', swbm_param],
+        which=swbm_param
+    )
+
+opt_sinus_all_df = pd.DataFrame(opt_sinus_all)
+
+# plot all sinus curves
+melted_df = opt_sinus_all_df.melt(var_name='SWBM parameter', value_name='Value',
+                                  ignore_index=False)
+# sns.relplot(
+#     data=melted_df, kind='line',
+#     col='region', x='timepoint', y='signal', units='subject',
+#     estimator=None, color='.7'
+# )
+# plt.show()
 
 # %%
 # ---- Evaluation
-opt_sinus = seasonal_sinus(len(input_swbm),
-                           amplitude=res['x'][0],
-                           freq=res['x'][1],
-                           phase=res['x'][2],
-                           center=res['x'][3])
+
 # %%
 # Set swbm params
 params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
-params_seasonal = {'c_s': opt_sinus, 'b0': 0.8, 'g': .5, 'a': 4}
+params_seasonal = {'c_s': opt_sinus, 'b0': 0.8, 'g': .5, 'a': 4}  # TODO
 
 # %%
 # Run SWBM

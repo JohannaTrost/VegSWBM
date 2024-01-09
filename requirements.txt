@@ -5,3 +5,4 @@ xarray
 cartopy
 matplotlib
 arrow
+seaborn

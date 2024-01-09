@@ -14,7 +14,6 @@ plt.figure(figsize=(12, 6))
 # Plotting the curve
 plt.plot(date_range, seasonal_sinus(len(date_range), amplitude=19.8,
                                     freq=2, phase=6, center=149))
-plt.
 
 plt.xlabel('Date')
 plt.ylabel('Value')

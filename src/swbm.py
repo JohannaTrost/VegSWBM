@@ -13,9 +13,23 @@ def predict(curr_moist, evapo, wrunoff, precip, rad):
     return curr_moist + (precip - (evapo * rad) - (wrunoff * precip))
 
 
-def seasonal_sinus(n_time_steps, amplitude=.5, freq=2, phase=5, center=.8):
+def constrain_swbm_params(param_vals, which):
+    if which == 'g':
+        if min(param_vals) <= 0:
+            param_vals += 1e-5 - min(param_vals)  # ensure gamma > 0
+    elif which == 'b0':
+        if max(param_vals) > 1:
+            param_vals -= max(param_vals) - 1  # ensure b0 <= 1
+    else:
+        if min(param_vals) < 0:
+            param_vals += 0 - min(param_vals)  # ensure alpha and c_s >= 0
+    return param_vals
+
+
+def seasonal_sinus(n_time_steps, which, amplitude=.5, freq=2, phase=5, center=.8):
     """
 
+    :param which: string indicating for which parameters is modelled e.g. 'b0'
     :param center: 0 center will be shifted to given center
     :param n_time_steps: No. time steps
     :param amplitude: Amplitude of the sinusoidal curve
@@ -29,6 +43,9 @@ def seasonal_sinus(n_time_steps, amplitude=.5, freq=2, phase=5, center=.8):
     sinus_curve = amplitude * np.sin(freq * np.arange(n_time_steps) + phase)
     sinus_curve += center  # Centered at 0.8
 
+    # Condition SWBM parameters
+    sinus_curve = constrain_swbm_params(sinus_curve, which)
+        
     return sinus_curve
 
 
