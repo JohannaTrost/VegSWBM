@@ -1,5 +1,5 @@
 # %%
-# os.chdir('..')
+os.chdir('..')
 # %%
 import seaborn as sns
 from scipy.stats import pearsonr
@@ -43,10 +43,10 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     out_sm, _, _ = predict_ts(data, params)
     corr_sm, p_sm = pearsonr(out_sm, data['sm'])
 
-    if p_sm > 0.05:
-        print(f'No corr. P={p_sm}')
-    else:
-        print(corr_sm)
+    #if p_sm > 0.05:
+        #print(f'No corr. P={p_sm}')
+    #else:
+        #print(corr_sm)
 
     return corr_sm * -1  # to get maximum
 
@@ -175,3 +175,58 @@ ax.set_ylabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
 # plt.savefig('figs/b0_seasonal_ts_2010.pdf')
+
+# %%
+# Single parameter optimization
+params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
+param_opt = {'b0', 'g', 'a'}
+param_opt_sin_init = {'b0':[0.5, 2, 5, 0.8], 
+                      'g': [0.1, 2, 5, 0.5], 
+                      'a': [1, 2, 5, 4] }
+
+# %%
+# Run SWBM without seasonal variation
+moists, runoffs, ets = predict_ts(input_swbm, params)
+output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
+
+eval = {'model': [], 'kind': [], 'corr': [], 'pval': []}
+
+# %%
+# Seasonal Variation for single parameter
+for key, init_values in param_opt_sin_init.items():
+    #break
+    np.random.seed(42)
+    res_all = minimize(opt_swbm_corr,
+                       np.asarray(init_values).flatten(),  # has to be 1D
+                       args=(input_swbm, params, key),
+                       options={"maxiter": 500, "disp": True})
+    
+    # Print optimized sinus parameters
+    opt_params = np.reshape(res['x'], (1, 4))
+    opt_params_df = {p: val for p, val in zip([key], opt_params)}
+    opt_params_df = pd.DataFrame(opt_params_df,
+                                 index=['amplitude', 'freq', 'phase', 'center'])
+    print(opt_params_df)
+
+    # Get sinus curve
+    opt_sinus = seasonal_sinus(
+                    len(input_swbm),
+                    amplitude=opt_params_df.loc['amplitude', key],
+                    freq=opt_params_df.loc['freq', key],
+                    phase=opt_params_df.loc['phase', key],
+                    center=opt_params_df.loc['center', key],
+                    which=key
+    )
+
+    # Set swbm params
+    params_seasonal = params.copy()
+    params_seasonal[key] = 5 
+
+    # Run SWBM
+    moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
+                                                                 params_seasonal)
+
+    output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
+    output_swbm_seasonal = {'sm': moists_seasonal,
+                            'ro': runoffs_seasonal,
+                            'le': ets_seasonal}
