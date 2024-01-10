@@ -6,7 +6,16 @@
 `git clone https://github.com/JohannaTrost/VegSWBM.git`
 
 `cd VegSWBM`
+### gespräch mit rene:
+beta most impact?
+first of all single seasonal parameter variation
+c_s no seasonal variation (small?)
 
+when beta is most important check other sites
+
+## maby:
+
+first fit and optimize paramters for functions within Swbm 
 
 ## Approach:
 
@@ -16,11 +25,13 @@
 
 -> optimizing sinus function parameters (amplitude, frequency, phase and offset) for best possible correlation between Swbm output and true values (soil moisture and evapotranspiration)
 
-
 ## to do:
--> check if range of seasonal variation of parameters are physicly possible
 
--> if not adjust ie. add conditions to function parameters (maximum amplitude)
+-> compute **feature importance** e.g. with partical dependence (idea: predict with all seasonal and fixing one and report difference of correlation)
+
+-> split data in test and training set (Rene fragen?)
+
+-> if necessary adjust optimization for more "realism" ie. add conditions to function parameters (maximum amplitude)
 
 -> fix cetrain sinus function paramters (ie. phase)
 
@@ -28,26 +39,22 @@
 
 -> test model on diffrent datasets 
 
--> split data in test and training set
-
 -> test diffrent random seeds
 
+-> check if range of seasonal variation of parameters are physicly possible **DONE**
+
 ## thoughts for the poster:
--> plot comparing model output and true values 
--> for all 3 datasets?
-
--> table with correlations
-
--> plot seasonal variation of certain parameters
-
--> compare sinus functions of parameters
-
--> plot influance of seasonal variation
-
--> try to explain what the seasonal variation does 
-
-
-
+- plot comparing model output and true values 
+- for all 3 datasets?
+- table with correlations
+- plot seasonal variation of certain parameters
+- compare sinus functions of parameters
+- plot influance of seasonal variation
+- try to explain what the seasonal variation does 
+- not too much detail/text but should be clear without someone explaining
+- add outlook box
+- results shoudl be main part -> link to question
+- if figure shows multiple things -> make emphasis clear in caption
 
 ## Tracking changes
 
