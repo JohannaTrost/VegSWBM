@@ -8,6 +8,10 @@
 `cd VegSWBM`
 
 
+## maby:
+
+first fit and optimize paramters for functions within Swbm 
+
 ## Approach:
 
 -> seasonal variation for beta gamma alpha and c_s
