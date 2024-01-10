@@ -42,6 +42,14 @@ first fit and optimize paramters for functions within Swbm
 -> test diffrent random seeds
 
 ## thoughts for the poster:
+-> case study
+
+-> introduction
+
+-> why vertain parameters seasonal
+-> try to explain what the seasonal variation does 
+-> influence on model output
+
 -> plot comparing model output and true values 
 -> for all 3 datasets?
 
@@ -53,9 +61,16 @@ first fit and optimize paramters for functions within Swbm
 
 -> plot influance of seasonal variation
 
--> try to explain what the seasonal variation does 
+-> outlook box
 
+-> references with qr-code
 
+-> check evaluation sheet
+-> canva? softweare
+-> space!
+-> print poster in A4 at first 
+-> print at 12.02 Kostenstelle 11000200211 format A0
+-> check evaluation sheet 
 
 
 ## Tracking changes
