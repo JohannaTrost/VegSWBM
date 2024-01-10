@@ -57,6 +57,9 @@ input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
 # %%
+
+# ---- Optimization
+
 # initialize parameters and sinus params
 init_sinus_params_all = [[0.5, 2, 5, 420],
                          # c_s (amplitude, freq, phase, center)
@@ -71,7 +74,9 @@ res_all = minimize(opt_swbm_corr,
                    args=(input_swbm, {}, make_seasonal_all),
                    options={"maxiter": 500, "disp": True})
 
-# print optimized sinus parameters
+# ---- Visualization
+
+# -- print optimized sinus parameters
 opt_params_all = np.reshape(res_all['x'], (len(make_seasonal_all), 4))
 # (no. SWBM params. x no. sinus params.)
 opt_params_all_df = {p: val for p, val in
@@ -79,6 +84,8 @@ opt_params_all_df = {p: val for p, val in
 opt_params_all_df = pd.DataFrame(opt_params_all_df,
                                  index=['amplitude', 'freq', 'phase', 'center'])
 print(opt_params_all_df)
+
+# -- visualize SWBM parameters (c_s, b0, a and g)
 
 # get optimized seasonal SWBM parameters
 opt_sinus_all = {}
@@ -93,16 +100,23 @@ for swbm_param in opt_params_all_df:
     )
 
 opt_sinus_all_df = pd.DataFrame(opt_sinus_all)
+opt_sinus_all_df['time'] = [date.format('YYYY-MM-DD')
+                            for date in input_swbm['time']]
+year_mask = [arrow.get(date).year == 2010 for date in opt_sinus_all_df['time']]
 
 # plot all sinus curves
-melted_df = opt_sinus_all_df.melt(var_name='SWBM parameter', value_name='Value',
-                                  ignore_index=False)
-# sns.relplot(
-#     data=melted_df, kind='line',
-#     col='region', x='timepoint', y='signal', units='subject',
-#     estimator=None, color='.7'
-# )
-# plt.show()
+melted_df = opt_sinus_all_df[year_mask].melt(var_name='SWBM parameter',
+                                             value_name='Value',
+                                             id_vars=['time'],
+                                             ignore_index=False)
+g = sns.relplot(data=melted_df, kind='line',
+                col='SWBM parameter', y='Value', x='time',
+                estimator=None, col_wrap=2,
+                facet_kws={'sharey': False, 'sharex': True})
+g.set_xticklabels(rotation=90)
+plt.show()
+
+
 
 # %%
 # ---- Evaluation
@@ -141,8 +155,6 @@ print(np.round(eval_df, 3))
 # -- some plots
 
 # only show one year
-input_swbm['time'] = [arrow.get(date) for date in input_swbm['time']]
-year_mask = [date.year == 2010 for date in input_swbm['time']]
 
 fig, ax = plt.subplots()
 ax.set_title('Seasonal Beta')
