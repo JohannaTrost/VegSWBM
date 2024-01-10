@@ -6,7 +6,12 @@
 `git clone https://github.com/JohannaTrost/VegSWBM.git`
 
 `cd VegSWBM`
+### gespräch mit rene:
+beta most impact?
+first of all single seasonal parameter variation
+c_s no seasonal variation (small?)
 
+when beta is most important check other sites
 
 ## maby:
 
