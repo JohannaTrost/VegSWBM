@@ -189,14 +189,14 @@ param_opt_sin_init = {'b0':[0.5, 2, 5, 0.8],
 moists, runoffs, ets = predict_ts(input_swbm, params)
 output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
 
-eval = {'model': [], 'kind': [], 'corr': [], 'pval': []}
+eval_single = {'corr': [], 'pval': []}
 
 # %%
 # Seasonal Variation for single parameter
 for key, init_values in param_opt_sin_init.items():
     #break
     np.random.seed(42)
-    res_all = minimize(opt_swbm_corr,
+    res = minimize(opt_swbm_corr,
                        np.asarray(init_values).flatten(),  # has to be 1D
                        args=(input_swbm, params, key),
                        options={"maxiter": 500, "disp": True})
@@ -220,7 +220,7 @@ for key, init_values in param_opt_sin_init.items():
 
     # Set swbm params
     params_seasonal = params.copy()
-    params_seasonal[key] = 5 
+    params_seasonal[key] = opt_sinus 
 
     # Run SWBM
     moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
@@ -230,3 +230,19 @@ for key, init_values in param_opt_sin_init.items():
     output_swbm_seasonal = {'sm': moists_seasonal,
                             'ro': runoffs_seasonal,
                             'le': ets_seasonal}
+    
+    
+    for i in ['sm', 'ro', 'le']:
+        corr, p = pearsonr(output_swbm_seasonal[i], input_swbm[i])
+
+        #eval_single['parameter'].append(key)
+        eval_single['corr'].append(corr)
+        eval_single['pval'].append(p)
+        #eval_single['model'].append(key)
+        #eval_single['kind'].append(i)
+        
+
+# %%
+eval_single_df = pd.DataFrame(eval_single)
+print(np.round(eval_single_df, 3))
+# %%
