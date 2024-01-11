@@ -189,7 +189,18 @@ param_opt_sin_init = {'b0':[0.5, 2, 5, 0.8],
 moists, runoffs, ets = predict_ts(input_swbm, params)
 output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
 
-eval_single = {'corr': [], 'pval': []}
+eval_single = {'parameter': [],
+               'kind': [],
+               'corr': [], 
+               'pval': []}
+
+# Test correlation
+for i in ['sm', 'ro', 'le']:
+        corr, p = pearsonr(output_swbm[i], input_swbm[i])
+        eval_single['parameter'].append(None)
+        eval_single['corr'].append(corr)
+        eval_single['pval'].append(p)
+        eval_single['kind'].append(i)
 
 # %%
 # Seasonal Variation for single parameter
@@ -231,16 +242,14 @@ for key, init_values in param_opt_sin_init.items():
                             'ro': runoffs_seasonal,
                             'le': ets_seasonal}
     
-    
+    # Test correlation 
     for i in ['sm', 'ro', 'le']:
         corr, p = pearsonr(output_swbm_seasonal[i], input_swbm[i])
 
-        #eval_single['parameter'].append(key)
+        eval_single['parameter'].append(key)
         eval_single['corr'].append(corr)
         eval_single['pval'].append(p)
-        #eval_single['model'].append(key)
-        #eval_single['kind'].append(i)
-        
+        eval_single['kind'].append(i)
 
 # %%
 eval_single_df = pd.DataFrame(eval_single)
