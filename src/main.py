@@ -252,6 +252,6 @@ for key, init_values in param_opt_sin_init.items():
         eval_single['kind'].append(i)
 
 # %%
+# Print results
 eval_single_df = pd.DataFrame(eval_single)
 print(np.round(eval_single_df, 3))
-# %%
