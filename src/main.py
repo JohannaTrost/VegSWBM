@@ -255,3 +255,19 @@ for key, init_values in param_opt_sin_init.items():
 # Print results
 eval_single_df = pd.DataFrame(eval_single)
 print(np.round(eval_single_df, 3))
+
+# %%
+# Plot results
+pivot_df = eval_single_df.pivot(index='parameter', columns='kind', values='corr')
+
+ax = pivot_df.plot(kind='bar', width=0.7, figsize=(10, 6), colormap='viridis')
+for p in ax.patches:
+    ax.annotate(str(round(p.get_height(), 2)), (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center', va='center', xytext=(0, 10), textcoords='offset points')
+# Adding labels and title
+ax.set_xlabel('Parameter')
+ax.set_ylabel('Correlation')
+
+# Show the plot
+plt.show()
+# %%
