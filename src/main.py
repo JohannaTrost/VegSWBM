@@ -1,8 +1,7 @@
 # %%
-os.chdir('..')
+# os.chdir('..')
 # %%
 import seaborn as sns
-from scipy.stats import pearsonr
 from scipy.optimize import minimize
 
 from src.swbm import *
@@ -28,7 +27,7 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
                       else seasonal_param)
 
     inits = np.reshape(inits, (len(seasonal_param), 4))
-    # (no. SWBM params. x no. sinus params.)
+    # (no. SWBM const_swbm_params. x no. sinus const_swbm_params.)
 
     # Make seasonal parameters
     for param, sinus_init in zip(seasonal_param, inits):
@@ -43,10 +42,10 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     out_sm, _, _ = predict_ts(data, params)
     corr_sm, p_sm = pearsonr(out_sm, data['sm'])
 
-    #if p_sm > 0.05:
-        #print(f'No corr. P={p_sm}')
-    #else:
-        #print(corr_sm)
+    # if p_sm > 0.05:
+    # print(f'No corr. P={p_sm}')
+    # else:
+    # print(corr_sm)
 
     return corr_sm * -1  # to get maximum
 
@@ -57,10 +56,57 @@ input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
 
 # %%
+# ---- Single parameter optimization
+const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
 
-# ---- Optimization
+# %%
 
-# initialize parameters and sinus params
+# Run SWBM without seasonal variation
+moists, runoffs, ets = predict_ts(input_swbm, const_swbm_params)
+eval_df = eval_swbm(input_swbm, {'sm': moists, 'ro': runoffs, 'le': ets})
+
+# %%
+
+# ---- Seasonal Variation for single parameter
+param_opt_sin_init = {'b0': [0.5, 2, 5, 0.8],
+                      'g': [0.1, 2, 5, 0.5],
+                      'a': [1, 2, 5, 4]}
+eval_single = None
+for swbm_param, init_values in param_opt_sin_init.items():
+    np.random.seed(42)
+    res = minimize(opt_swbm_corr,
+                   np.asarray(init_values).flatten(),  # has to be 1D
+                   args=(input_swbm, const_swbm_params, swbm_param),
+                   options={"maxiter": 500, "disp": True})
+    opt_params_df = minimize_res2df(res, [swbm_param])
+
+    # Set swbm const_swbm_params
+    params_seasonal = const_swbm_params.copy()
+    # Get sinus curve for current single parameter
+    params_seasonal[swbm_param] = seasonal_sinus(
+        len(input_swbm),
+        amplitude=opt_params_df.loc['amplitude', swbm_param],
+        freq=opt_params_df.loc['freq', swbm_param],
+        phase=opt_params_df.loc['phase', swbm_param],
+        center=opt_params_df.loc['center', swbm_param],
+        which=swbm_param
+    )
+
+    # Run SWBM
+    preds_seasonal = predict_ts(input_swbm, params_seasonal)
+    moists_seasonal, runoffs_seasonal, ets_seasonal = preds_seasonal
+    # Test correlation
+    eval_df = pd.concat((eval_df, eval_swbm(input_swbm,
+                                            {'sm': moists_seasonal,
+                                             'ro': runoffs_seasonal,
+                                             'le': ets_seasonal},
+                                            swbm_param)))
+
+# %%
+
+# ---- Optimize all
+
+# initialize parameters and sinus const_swbm_params
 init_sinus_params_all = [[0.5, 2, 5, 420],
                          # c_s (amplitude, freq, phase, center)
                          [0.5, 2, 5, 0.8],  # b0 -> max. ET
@@ -68,26 +114,16 @@ init_sinus_params_all = [[0.5, 2, 5, 420],
                          [1, 2, 5, 4]]  # a -> runoff function shape
 make_seasonal_all = ['c_s', 'b0', 'g', 'a']
 
+# optimize sinus parameters
 np.random.seed(42)
 res_all = minimize(opt_swbm_corr,
                    np.asarray(init_sinus_params_all).flatten(),  # has to be 1D
                    args=(input_swbm, {}, make_seasonal_all),
                    options={"maxiter": 500, "disp": True})
+# extract optimized sinus parameters
+opt_params_all_df = minimize_res2df(res_all, make_seasonal_all)
 
-# ---- Visualization
-
-# -- print optimized sinus parameters
-opt_params_all = np.reshape(res_all['x'], (len(make_seasonal_all), 4))
-# (no. SWBM params. x no. sinus params.)
-opt_params_all_df = {p: val for p, val in
-                     zip(make_seasonal_all, opt_params_all)}
-opt_params_all_df = pd.DataFrame(opt_params_all_df,
-                                 index=['amplitude', 'freq', 'phase', 'center'])
-print(opt_params_all_df)
-
-# -- visualize SWBM parameters (c_s, b0, a and g)
-
-# get optimized seasonal SWBM parameters
+# get optimized seasonal parameters
 opt_sinus_all = {}
 for swbm_param in opt_params_all_df:
     opt_sinus_all[swbm_param] = seasonal_sinus(
@@ -99,175 +135,104 @@ for swbm_param in opt_params_all_df:
         which=swbm_param
     )
 
-opt_sinus_all_df = pd.DataFrame(opt_sinus_all)
-opt_sinus_all_df['time'] = [date.format('YYYY-MM-DD')
-                            for date in input_swbm['time']]
-year_mask = [arrow.get(date).year == 2010 for date in opt_sinus_all_df['time']]
-
-# plot all sinus curves
-melted_df = opt_sinus_all_df[year_mask].melt(var_name='SWBM parameter',
-                                             value_name='Value',
-                                             id_vars=['time'],
-                                             ignore_index=False)
-g = sns.relplot(data=melted_df, kind='line',
-                col='SWBM parameter', y='Value', x='time',
-                estimator=None, col_wrap=2,
-                facet_kws={'sharey': False, 'sharex': True})
-g.set_xticklabels(rotation=90)
-plt.show()
-
-
-
-# %%
-# ---- Evaluation
-
-# %%
-# Set swbm params
-params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
-params_seasonal = {'c_s': opt_sinus, 'b0': 0.8, 'g': .5, 'a': 4}  # TODO
-
-# %%
 # Run SWBM
-moists, runoffs, ets = predict_ts(input_swbm, params)
-moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
-                                                             params_seasonal)
+preds_all = predict_ts(input_swbm, opt_sinus_all)
+preds_seasonal_all = {'sm': preds_all[0],
+                      'ro': preds_all[1],
+                      'le': preds_all[2]}
+# get correlations
+eval_df = pd.concat((eval_df, eval_swbm(input_swbm, preds_seasonal_all, 'all')))
 
-output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
-output_swbm_seasonal = {'sm': moists_seasonal,
-                        'ro': runoffs_seasonal,
-                        'le': ets_seasonal}
+# ---- Optimize all except for one parameter
 
-eval = {'model': [], 'kind': [], 'corr': [], 'pval': []}
-for model, out_swbm in zip(['Constant', 'Seasonal Beta'],
-                           [output_swbm, output_swbm_seasonal]):
-    for key in ['sm', 'ro', 'le']:
-        corr, p = pearsonr(out_swbm[key], input_swbm[key])
-
-        eval['corr'].append(corr)
-        eval['pval'].append(p)
-        eval['model'].append(model)
-        eval['kind'].append(key)
-
-eval_df = pd.DataFrame(eval)
-print(np.round(eval_df, 3))
-
-# %%
-# -- some plots
-
-# only show one year
-
-fig, ax = plt.subplots()
-ax.set_title('Seasonal Beta')
-ax.scatter(moists_seasonal[year_mask],
-           ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
-ax.scatter(moists_seasonal[year_mask],
-           runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
-ax.set_xlabel('Soil moisture(mm)')
-plt.legend()
-plt.tight_layout()
-# plt.savefig('figs/b0_seasonal_rel.pdf')
-
-fig, ax = plt.subplots()
-ax.set_title('Seasonal Beta')
-plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
-                 runoffs[year_mask], ax)
-ax.set_ylabel('Soil moisture(mm)')
-plt.legend()
-plt.tight_layout()
-# plt.savefig('figs/b0_seasonal_ts_2010.pdf')
-
-# %%
-# Single parameter optimization
-params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
-param_opt = {'b0', 'g', 'a'}
-param_opt_sin_init = {'b0':[0.5, 2, 5, 0.8], 
-                      'g': [0.1, 2, 5, 0.5], 
-                      'a': [1, 2, 5, 4] }
-
-# %%
-# Run SWBM without seasonal variation
-moists, runoffs, ets = predict_ts(input_swbm, params)
-output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
-
-eval_single = {'parameter': [],
-               'kind': [],
-               'corr': [], 
-               'pval': []}
-
-# Test correlation
-for i in ['sm', 'ro', 'le']:
-        corr, p = pearsonr(output_swbm[i], input_swbm[i])
-        eval_single['parameter'].append(None)
-        eval_single['corr'].append(corr)
-        eval_single['pval'].append(p)
-        eval_single['kind'].append(i)
-
-# %%
-# Seasonal Variation for single parameter
-for key, init_values in param_opt_sin_init.items():
-    #break
+init_sinus_params_all = np.asarray(init_sinus_params_all)
+for i, swbm_param in enumerate(make_seasonal_all):
+    # optimize sinus parameters
     np.random.seed(42)
-    res = minimize(opt_swbm_corr,
-                       np.asarray(init_values).flatten(),  # has to be 1D
-                       args=(input_swbm, params, key),
+    # exclude current param. from init values and list of params
+    make_seasonal_tmp = [p for p in make_seasonal_all if p != swbm_param]
+    init_sinus_params_tmp = np.delete(init_sinus_params_all, i, axis=0)
+    res_tmp = minimize(opt_swbm_corr,
+                       init_sinus_params_tmp.flatten(),
+                       # has to be 1D
+                       args=(input_swbm, const_swbm_params, make_seasonal_tmp),
                        options={"maxiter": 500, "disp": True})
-    
-    # Print optimized sinus parameters
-    opt_params = np.reshape(res['x'], (1, 4))
-    opt_params_df = {p: val for p, val in zip([key], opt_params)}
-    opt_params_df = pd.DataFrame(opt_params_df,
-                                 index=['amplitude', 'freq', 'phase', 'center'])
-    print(opt_params_df)
+    # extract optimized sinus parameters
+    opt_params_df = minimize_res2df(res_tmp, make_seasonal_tmp)
 
-    # Get sinus curve
-    opt_sinus = seasonal_sinus(
-                    len(input_swbm),
-                    amplitude=opt_params_df.loc['amplitude', key],
-                    freq=opt_params_df.loc['freq', key],
-                    phase=opt_params_df.loc['phase', key],
-                    center=opt_params_df.loc['center', key],
-                    which=key
-    )
-
-    # Set swbm params
-    params_seasonal = params.copy()
-    params_seasonal[key] = opt_sinus 
+    # get optimized seasonal parameters
+    opt_sinus = const_swbm_params.copy()
+    for p in opt_params_df:
+        opt_sinus[p] = seasonal_sinus(
+            len(input_swbm),
+            amplitude=opt_params_df.loc['amplitude', p],
+            freq=opt_params_df.loc['freq', p],
+            phase=opt_params_df.loc['phase', p],
+            center=opt_params_df.loc['center', p],
+            which=p
+        )
 
     # Run SWBM
-    moists_seasonal, runoffs_seasonal, ets_seasonal = predict_ts(input_swbm,
-                                                                 params_seasonal)
+    model_sm, model_ro, model_le = predict_ts(input_swbm, opt_sinus)
+    preds_seasonal = {'sm': model_sm, 'ro': model_ro, 'le': model_le}
+    # get correlations
+    eval_df = pd.concat(
+        (eval_df, eval_swbm(input_swbm, preds_seasonal, f'not {swbm_param}')))
 
-    output_swbm = {'sm': moists, 'ro': runoffs, 'le': ets}
-    output_swbm_seasonal = {'sm': moists_seasonal,
-                            'ro': runoffs_seasonal,
-                            'le': ets_seasonal}
-    
-    # Test correlation 
-    for i in ['sm', 'ro', 'le']:
-        corr, p = pearsonr(output_swbm_seasonal[i], input_swbm[i])
-
-        eval_single['parameter'].append(key)
-        eval_single['corr'].append(corr)
-        eval_single['pval'].append(p)
-        eval_single['kind'].append(i)
+# get parameter importance
+reference_corr = (eval_df[(eval_df['parameter'] == 'all')
+                          & (eval_df['kind'] == 'sm')]['corr'].values[0])
+is_excluded = eval_df['parameter'].isin(['not b0', 'not g', 'not a', 'not c_s'])
+excl_corr = eval_df[(eval_df['kind'] == 'sm') & is_excluded]
+# Extract feature importances
+feature_importances = (
+    excl_corr.assign(parameter=lambda x: x['parameter'].str.replace('not ', ''),
+                     # Remove "not " from parameter names
+                     feature_importance=lambda x: reference_corr - x['corr'])
+    [['parameter', 'feature_importance']]
+)
+# plot parameter importance
+plot_param_importance(feature_importances, save='../figs/importance.pdf')
 
 # %%
-# Print results
-eval_single_df = pd.DataFrame(eval_single)
-print(np.round(eval_single_df, 3))
-
-# %%
-# Plot results
-pivot_df = eval_single_df.pivot(index='parameter', columns='kind', values='corr')
+# Plot single opt results
+pivot_df = eval_df.pivot(index='parameter', columns='kind',
+                         values='corr')
 
 ax = pivot_df.plot(kind='bar', width=0.7, figsize=(10, 6), colormap='viridis')
 for p in ax.patches:
-    ax.annotate(str(round(p.get_height(), 2)), (p.get_x() + p.get_width() / 2., p.get_height()),
-                ha='center', va='center', xytext=(0, 10), textcoords='offset points')
+    ax.annotate(str(round(p.get_height(), 2)),
+                (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center', va='center', xytext=(0, 10),
+                textcoords='offset points')
 # Adding labels and title
 ax.set_xlabel('Parameter')
 ax.set_ylabel('Correlation')
 
 # Show the plot
 plt.show()
+
 # %%
+# -- some plots
+
+# only show one year
+
+# fig, ax = plt.subplots()
+# ax.set_title('Seasonal Beta')
+# ax.scatter(moists_seasonal[year_mask],
+#            ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
+# ax.scatter(moists_seasonal[year_mask],
+#            runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
+# ax.set_xlabel('Soil moisture(mm)')
+# plt.legend()
+# plt.tight_layout()
+# # plt.savefig('figs/b0_seasonal_rel.pdf')
+#
+# fig, ax = plt.subplots()
+# ax.set_title('Seasonal Beta')
+# plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
+#                  runoffs[year_mask], ax)
+# ax.set_ylabel('Soil moisture(mm)')
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('figs/b0_seasonal_ts_2010.pdf')
