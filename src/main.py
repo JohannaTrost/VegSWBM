@@ -63,7 +63,9 @@ const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
 
 # Run SWBM without seasonal variation
 moists, runoffs, ets = predict_ts(input_swbm, const_swbm_params)
-eval_df = eval_swbm(input_swbm, {'sm': moists, 'ro': runoffs, 'le': ets})
+eval_df = eval_swbm(input_swbm,
+                    {'sm': moists, 'ro': runoffs, 'le': ets},
+                    'None\nSeasonal')
 
 # %%
 
@@ -192,7 +194,10 @@ feature_importances = (
     [['parameter', 'feature_importance']]
 )
 # plot parameter importance
-plot_param_importance(feature_importances, save='../figs/importance.pdf')
+plot_param_importance(feature_importances, save='figs/importance.pdf')
+
+# average across sm, ro and et correlation and plot scores
+plot_avg_scores(eval_df, save='figs/compare_models_scores.pdf')
 
 # %%
 # Plot single opt results
