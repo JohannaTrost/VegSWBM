@@ -76,6 +76,7 @@ param_opt_sin_init = {'b0': [0.5, 2, 5, 0.8],
 eval_single = None
 for swbm_param, init_values in param_opt_sin_init.items():
     np.random.seed(42)
+    const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
     res = minimize(opt_swbm_corr,
                    np.asarray(init_values).flatten(),  # has to be 1D
                    args=(input_swbm, const_swbm_params, swbm_param),
@@ -83,7 +84,7 @@ for swbm_param, init_values in param_opt_sin_init.items():
     opt_params_df = minimize_res2df(res, [swbm_param])
 
     # Set swbm const_swbm_params
-    params_seasonal = const_swbm_params.copy()
+    params_seasonal = const_swbm_params
     # Get sinus curve for current single parameter
     params_seasonal[swbm_param] = seasonal_sinus(
         len(input_swbm),
@@ -140,7 +141,7 @@ for swbm_param in opt_params_all_df:
 # Run SWBM
 preds_all = predict_ts(input_swbm, opt_sinus_all)
 preds_seasonal_all = {'sm': preds_all[0],
-                      'ro': preds_all[1],
+                      'ro': preds_all[1],  # messed up sinus phase here
                       'le': preds_all[2]}
 # get correlations
 eval_df = pd.concat((eval_df, eval_swbm(input_swbm, preds_seasonal_all, 'all')))
@@ -149,6 +150,7 @@ eval_df = pd.concat((eval_df, eval_swbm(input_swbm, preds_seasonal_all, 'all')))
 
 init_sinus_params_all = np.asarray(init_sinus_params_all)
 for i, swbm_param in enumerate(make_seasonal_all):
+    const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
     # optimize sinus parameters
     np.random.seed(42)
     # exclude current param. from init values and list of params
@@ -216,6 +218,17 @@ ax.set_ylabel('Correlation')
 
 # Show the plot
 plt.show()
+
+# whats wrong with runoff
+input_swbm_time = input_swbm.copy()
+input_swbm_time['time'] = [date.format('YYYY-MM-DD')
+                            for date in input_swbm['time']]
+year_mask = [arrow.get(date).year == 2010 or arrow.get(date).year == 2011 or arrow.get(date).year == 2012 for date in input_swbm['time']]
+plt.plot(input_swbm_time['time'], input_swbm_time['ro'], label='Observed')
+plt.plot(input_swbm_time['time'], runoffs_seasonal, label='Sinus Alpha')
+plt.plot(input_swbm_time['time'], preds_all[1], label='All')
+plt.plot(input_swbm_time['time'], runoffs, label='Constant Alpha')
+plt.legend()
 
 # %%
 # -- some plots
