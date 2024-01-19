@@ -14,3 +14,6 @@ from src.utils import *
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
+
+#%%
+# Calibration (opt c_s, g, a, b0 seasonal)
