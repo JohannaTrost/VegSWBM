@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
 
+from src.swbm import predict_ts, seasonal_sinus
+
 
 def minimize_res2df(result, opt_swbm_params):
     """Extract sinus parameters from optimizer function output and put into
@@ -101,13 +103,44 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
                                        which=param)
 
     # Run SWBM
-    out_sm, _, _ = predict_ts(data, params)
-    corr_sm, p_sm = pearsonr(out_sm, data['sm'])
+    out_sm, out_ro, _ = predict_ts(data, params)
+    if ('a' in seasonal_param and 'c_s' in seasonal_param
+            and len(seasonal_param) == 2):
+        # only optimize runoff
+        corr, pval = pearsonr(out_ro, data['ro'])
+    else:
+        corr, pval = pearsonr(out_sm, data['sm'])
 
-    # if p_sm > 0.05:
-    # print(f'No corr. P={p_sm}')
-    # else:
-    # print(corr_sm)
+    if pval > 0.05:
+        print(f'No corr. P={pval}')
 
-    return corr_sm * -1  # to get maximum
+    return corr * -1  # to get maximum
 
+
+def opt_runoff_corr(inits, data, params):
+    """ Calculates correlation between Swbm with sesonal parameter variation
+    and true values
+
+    :param inits: initial parameters for seasonal sinus function
+    :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le,
+                 snr)
+    :param params: parameters for Swbm (look predict_ts), can be empty dict if
+                   all parameters will be seasonal
+    :param seasonal_param: parameter(s) to set seasonal (str or list)
+    :return: correlation
+    """
+    params_a = seasonal_sinus(len(data),
+                              amplitude=inits[0],
+                              freq=inits[1],
+                              phase=inits[2],
+                              center=inits[3],
+                              which='a')
+
+    # Run SWBM
+    _, out_ro, _ = predict_ts(data, params_a)
+    corr, pval = pearsonr(out_ro, data['ro'])
+
+    if pval > 0.05:
+        print(f'No corr. P={pval}')
+
+    return corr * -1  # to get maximum

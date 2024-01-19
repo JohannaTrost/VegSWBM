@@ -94,15 +94,16 @@ def plot_param_importance(importances, save=None):
     # Remove plot borders and x-axis
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
-    ax.xaxis.set_visible(False)
+    # ax.xaxis.set_visible(False)
 
     # Set labels and title
-    plt.ylabel('Parameter')
-    plt.title('Importance of Parameters')
+    plt.ylabel('')
+    plt.xlabel('Correlation difference')
+    plt.title('Importance of SWBM Parameters')
 
     # Show the plot
+    plt.tight_layout()
     plt.show()
 
     # save plot
