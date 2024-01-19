@@ -13,6 +13,17 @@ c_s no seasonal variation (small?)
 
 when beta is most important check other sites
 
+## Final plots
+Feature importance
+
+Observed vs Initial vs Seasonal
+    -> soil moisture
+    -> runoff
+    -> ET
+
+optimized sinus function for Beta (in methods)
+    
+
 ## maby:
 
 first fit and optimize paramters for functions within Swbm 
