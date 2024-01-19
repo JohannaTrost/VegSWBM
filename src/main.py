@@ -10,47 +10,6 @@ from src.utils import *
 
 
 # %%
-def opt_swbm_corr(inits, data, params, seasonal_param):
-    """ Calculates correlation between Swbm with sesonal parameter variation
-    and true values
-
-    :param inits: initial parameters for seasonal sinus function
-    :param data: input (true) data (pandas df) (time, lat, long, tp, sm, ro, le,
-                 snr)
-    :param params: parameters for Swbm (look predict_ts), can be empty dict if
-                   all parameters will be seasonal
-    :param seasonal_param: parameter(s) to set seasonal (str or list)
-    :return: correlation
-    """
-    # if single parameters is given make list
-    seasonal_param = ([seasonal_param] if isinstance(seasonal_param, str)
-                      else seasonal_param)
-
-    inits = np.reshape(inits, (len(seasonal_param), 4))
-    # (no. SWBM const_swbm_params. x no. sinus const_swbm_params.)
-
-    # Make seasonal parameters
-    for param, sinus_init in zip(seasonal_param, inits):
-        params[param] = seasonal_sinus(len(data),
-                                       amplitude=sinus_init[0],
-                                       freq=sinus_init[1],
-                                       phase=sinus_init[2],
-                                       center=sinus_init[3],
-                                       which=param)
-
-    # Run SWBM
-    out_sm, _, _ = predict_ts(data, params)
-    corr_sm, p_sm = pearsonr(out_sm, data['sm'])
-
-    # if p_sm > 0.05:
-    # print(f'No corr. P={p_sm}')
-    # else:
-    # print(corr_sm)
-
-    return corr_sm * -1  # to get maximum
-
-
-# %%
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
 input_swbm = prepro(input_swbm_raw)
