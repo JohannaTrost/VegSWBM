@@ -104,8 +104,7 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
 
     # Run SWBM
     out_sm, out_ro, _ = predict_ts(data, params)
-    if ('a' in seasonal_param and 'c_s' in seasonal_param
-            and len(seasonal_param) == 2):
+    if 'a' in seasonal_param and len(seasonal_param) == 1:
         # only optimize runoff
         corr, pval = pearsonr(out_ro, data['ro'])
     else:

@@ -191,18 +191,16 @@ plt.show()
 plt.close('all')
 
 # whats wrong with runoff
-input_swbm_time = input_swbm.copy()
-
 year_mask = [date.year == 2010 or date.year == 2011 or
              date.year == 2012 for date in input_swbm['time']]
 
-plt.plot(input_swbm_time['time'][year_mask], input_swbm_time['ro'][year_mask],
+plt.plot(input_swbm['time'][year_mask], input_swbm['ro'][year_mask],
          label='Observed')
-plt.plot(input_swbm_time['time'][year_mask], single_preds['a']['ro'][year_mask],
+plt.plot(input_swbm['time'][year_mask], single_preds['a']['ro'][year_mask],
          label='Sinus Alpha')
-plt.plot(input_swbm_time['time'][year_mask], preds_all[1][year_mask],
+plt.plot(input_swbm['time'][year_mask], preds_all[1][year_mask],
          label='All')
-plt.plot(input_swbm_time['time'][year_mask], runoffs[year_mask],
+plt.plot(input_swbm['time'][year_mask], runoffs[year_mask],
          label='Constant Alpha')
 plt.xticks(rotation=45)
 plt.legend()
@@ -213,31 +211,29 @@ plt.show()
 # visualize b0-model vs. constant-model vs. observed
 year_mask = [date.year == 2010 or date.year == 2011
              for date in input_swbm['time']]
-x_ticks = input_swbm_time['time'][year_mask]
+x_ticks = input_swbm['time'][year_mask]
 
-fig, ax = plt.subplots(ncols=3, figsize=(16, 9))
+fig, ax = plt.subplots(nrows=3, figsize=(9, 16))
 
-ax[0].plot(x_ticks, input_swbm_time['sm'][year_mask] * 1000,
+ax[0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000,
            label='Observed')
 ax[0].plot(x_ticks, single_preds['b0']['sm'][year_mask],
            label='B0-seasonal-model')
 ax[0].plot(x_ticks, moists[year_mask],
            label='Constant model')
 ax[0].set_title('Soil moisture')
-ax[0].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
 ax[0].legend()
 
-ax[1].plot(x_ticks, input_swbm_time['le'][year_mask],
+ax[1].plot(x_ticks, input_swbm['le'][year_mask],
            label='Observed')
-ax[1].plot(x_ticks,
-           single_preds['b0']['le'][year_mask],
+ax[1].plot(x_ticks, single_preds['b0']['le'][year_mask],
            label='B0-seasonal-model')
 ax[1].plot(x_ticks, ets[year_mask],
            label='Constant model')
 ax[1].set_title('Evapotranspiration')
-ax[1].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
+ax[1].legend()
 
-ax[2].plot(x_ticks, input_swbm_time['ro'][year_mask],
+ax[2].plot(x_ticks, input_swbm['ro'][year_mask],
            label='Observed')
 ax[2].plot(x_ticks,
            single_preds['b0']['ro'][year_mask],
@@ -245,7 +241,10 @@ ax[2].plot(x_ticks,
 ax[2].plot(x_ticks, runoffs[year_mask],
            label='Constant model')
 ax[2].set_title('Runoff')
-ax[2].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
+ax[2].legend()
+
+plt.tight_layout()
+plt.show()
 
 print(opt_params_dfs['b0'])
 
