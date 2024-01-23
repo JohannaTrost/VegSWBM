@@ -90,7 +90,7 @@ year_mask = [date.year == 2010 or date.year == 2011
              for date in input_swbm['time']]
 x_ticks = input_swbm['time'][year_mask]
 
-fig, ax = plt.subplots(nrows=3, figsize=(9, 16))
+fig, ax = plt.subplots(nrows=3, figsize=(3, 9))
 
 ax[0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000, label='Observed')
 ax[0].plot(x_ticks, b0_model_preds['sm'][year_mask], label='B0-seasonal-model')
@@ -134,6 +134,7 @@ ax.scatter(b0_model_preds['sm'][year_mask],
 ax.set_xlabel('Soil moisture(mm)')
 plt.legend()
 plt.tight_layout()
+plt.close('all')
 # plt.savefig('figs/b0_seasonal_rel.pdf')
 
 fig, ax = plt.subplots()
