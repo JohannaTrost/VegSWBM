@@ -121,3 +121,30 @@ print(params_seasonal['b0'])
 plt.plot(x_ticks, params_seasonal['b0'])
 plt.xticks(rotation=45)
 plt.show()
+
+# %%
+year_mask = [date.year == 2010 for date in input_swbm['time']]
+
+fig, ax = plt.subplots()
+ax.set_title('Seasonal Beta')
+ax.scatter(b0_model_preds['sm'][year_mask],
+           b0_model_preds['le'][year_mask], label='ET/Rnet', alpha=0.5)
+ax.scatter(b0_model_preds['sm'][year_mask],
+           b0_model_preds['ro'][year_mask], label='Runoff (Q)', alpha=0.5)
+ax.set_xlabel('Soil moisture(mm)')
+plt.legend()
+plt.tight_layout()
+# plt.savefig('figs/b0_seasonal_rel.pdf')
+
+fig, ax = plt.subplots()
+ax.set_title('Seasonal Beta')
+ax, ax2 = plot_time_series(b0_model_preds['sm'][year_mask],
+                         b0_model_preds['le'][year_mask],
+                         b0_model_preds['ro'][year_mask], ax)
+ax.plot(range(365), input_swbm['sm'][year_mask] * 1000, label='True sm',
+        linestyle='dashed', color='grey', alpha=0.5)
+ax.set_ylabel('Soil moisture(mm)')
+ax.legend()
+ax2.legend()
+plt.tight_layout()
+# plt.savefig('figs/b0_seasonal_ts_2010.pdf')

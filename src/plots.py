@@ -120,7 +120,7 @@ def plot_time_series(soil_moist, evapo_trans, prec_runoff, ax):
 
     ax2.set_ylabel('mm per day')
 
-    return ax2
+    return ax, ax2
 
 
 def plot_relation(soil_moist, evapo_trans, prec_runoff, ax):

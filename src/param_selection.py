@@ -212,27 +212,4 @@ plt.tight_layout()
 plt.show()
 # plt.savefig('figs/model_selection/compare_runoffs.pdf')
 
-# %%
-# -- some plots
 
-# only show one year
-
-# fig, ax = plt.subplots()
-# ax.set_title('Seasonal Beta')
-# ax.scatter(moists_seasonal[year_mask],
-#            ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
-# ax.scatter(moists_seasonal[year_mask],
-#            runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
-# ax.set_xlabel('Soil moisture(mm)')
-# plt.legend()
-# plt.tight_layout()
-# # plt.savefig('figs/b0_seasonal_rel.pdf')
-#
-# fig, ax = plt.subplots()
-# ax.set_title('Seasonal Beta')
-# plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
-#                  runoffs[year_mask], ax)
-# ax.set_ylabel('Soil moisture(mm)')
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('figs/b0_seasonal_ts_2010.pdf')
