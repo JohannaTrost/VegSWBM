@@ -9,7 +9,6 @@ from src.swbm import *
 from src.plots import *
 from src.utils import *
 
-
 # %%
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
@@ -33,6 +32,9 @@ eval_df = eval_swbm(input_swbm,
 param_opt_sin_init = {'b0': [0.5, 2, 5, 0.8],
                       'g': [0.1, 2, 5, 0.5],
                       'a': [1, 2, 5, 4]}
+
+single_preds = {'b0': {}, 'g': {}, 'a': {}}
+opt_params_dfs = {'b0': {}, 'g': {}, 'a': {}}
 
 for swbm_param, init_values in param_opt_sin_init.items():
     np.random.seed(42)
@@ -58,11 +60,17 @@ for swbm_param, init_values in param_opt_sin_init.items():
     # Run SWBM
     preds_seasonal = predict_ts(input_swbm, params_seasonal)
     moists_seasonal, runoffs_seasonal, ets_seasonal = preds_seasonal
+
+    single_preds[swbm_param]['sm'] = moists_seasonal
+    single_preds[swbm_param]['ro'] = runoffs_seasonal
+    single_preds[swbm_param]['le'] = ets_seasonal
+
+    for param in ['amplitude', 'freq', 'phase', 'center']:
+        opt_params_dfs[swbm_param][param] = opt_params_df.loc[param, swbm_param]
+
     # Test correlation
     eval_df = pd.concat((eval_df, eval_swbm(input_swbm,
-                                            {'sm': moists_seasonal,
-                                             'ro': runoffs_seasonal,
-                                             'le': ets_seasonal},
+                                            single_preds[swbm_param],
                                             swbm_param)))
 
 # %%
@@ -179,27 +187,75 @@ ax.set_ylabel('Correlation')
 
 # Show the plot
 plt.show()
-plt.savefig('figs/model_selection/all_corr.pdf')
+# plt.savefig('figs/model_selection/all_corr.pdf')
 plt.close('all')
 
 # whats wrong with runoff
 input_swbm_time = input_swbm.copy()
-input_swbm_time['time'] = [date.format('YYYY-MM-DD')
-                            for date in input_swbm['time']]
-year_mask = [arrow.get(date).year == 2010 or arrow.get(date).year == 2011 or
-             arrow.get(date).year == 2012 for date in input_swbm['time']]
+
+year_mask = [date.year == 2010 or date.year == 2011 or
+             date.year == 2012 for date in input_swbm['time']]
+
 plt.plot(input_swbm_time['time'][year_mask], input_swbm_time['ro'][year_mask],
          label='Observed')
-plt.plot(input_swbm_time['time'][year_mask], runoffs_seasonal[year_mask],
+plt.plot(input_swbm_time['time'][year_mask], single_preds['a']['ro'][year_mask],
          label='Sinus Alpha')
 plt.plot(input_swbm_time['time'][year_mask], preds_all[1][year_mask],
          label='All')
 plt.plot(input_swbm_time['time'][year_mask], runoffs[year_mask],
          label='Constant Alpha')
+plt.xticks(rotation=45)
 plt.legend()
 plt.tight_layout()
 plt.show()
-plt.savefig('figs/model_selection/compare_runoffs.pdf')
+# plt.savefig('figs/model_selection/compare_runoffs.pdf')
+
+# visualize b0-model vs. constant-model vs. observed
+year_mask = [date.year == 2010 or date.year == 2011
+             for date in input_swbm['time']]
+x_ticks = input_swbm_time['time'][year_mask]
+
+fig, ax = plt.subplots(ncols=3, figsize=(16, 9))
+
+ax[0].plot(x_ticks, input_swbm_time['sm'][year_mask] * 1000,
+           label='Observed')
+ax[0].plot(x_ticks, single_preds['b0']['sm'][year_mask],
+           label='B0-seasonal-model')
+ax[0].plot(x_ticks, moists[year_mask],
+           label='Constant model')
+ax[0].set_title('Soil moisture')
+ax[0].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
+ax[0].legend()
+
+ax[1].plot(x_ticks, input_swbm_time['le'][year_mask],
+           label='Observed')
+ax[1].plot(x_ticks,
+           single_preds['b0']['le'][year_mask],
+           label='B0-seasonal-model')
+ax[1].plot(x_ticks, ets[year_mask],
+           label='Constant model')
+ax[1].set_title('Evapotranspiration')
+ax[1].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
+
+ax[2].plot(x_ticks, input_swbm_time['ro'][year_mask],
+           label='Observed')
+ax[2].plot(x_ticks,
+           single_preds['b0']['ro'][year_mask],
+           label='B0-seasonal-model')
+ax[2].plot(x_ticks, runoffs[year_mask],
+           label='Constant model')
+ax[2].set_title('Runoff')
+ax[2].set_xticklabels(x_ticks.dt.strftime('%Y-%m-%d'), rotation=45)
+
+print(opt_params_dfs['b0'])
+
+seasonal_b0 = seasonal_sinus(360 * 2,
+                             amplitude=opt_params_dfs['b0']['amplitude'],
+                             freq=opt_params_dfs['b0']['freq'],
+                             phase=opt_params_dfs['b0']['phase'],
+                             center=opt_params_dfs['b0']['center'], which='b0')
+# plot our sinus for B0
+plt.plot(range(360 * 2), seasonal_b0)
 
 # %%
 # -- some plots

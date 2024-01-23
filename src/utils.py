@@ -59,7 +59,7 @@ def prepro(raw_data):
     :return: pre-processed data (pandas df)
     """
 
-    data = {'time': [arrow.get(date) for date in raw_data['time']],
+    data = {'time': pd.to_datetime(raw_data['time']),
             'lat': raw_data['latitude'],
             'long': raw_data['longitude'],
             'tp': raw_data['tp_[mm]'],
