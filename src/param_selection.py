@@ -114,6 +114,8 @@ preds_seasonal_all = {'sm': preds_all[0],
 # get correlations
 eval_df = pd.concat((eval_df, eval_swbm(input_swbm, preds_seasonal_all, 'all')))
 
+# %%
+
 # ---- Optimize all except for one parameter
 
 init_sinus_params_all = np.asarray(init_sinus_params_all)
@@ -151,6 +153,7 @@ for i, swbm_param in enumerate(make_seasonal_all):
     eval_df = pd.concat(
         (eval_df, eval_swbm(input_swbm, preds_seasonal, f'not {swbm_param}')))
 
+# %%
 # get parameter importance
 reference_corr = (eval_df[(eval_df['parameter'] == 'all')
                           & (eval_df['kind'] == 'sm')]['corr'].values[0])
@@ -190,6 +193,7 @@ plt.show()
 # plt.savefig('figs/model_selection/all_corr.pdf')
 plt.close('all')
 
+# %%
 # whats wrong with runoff
 year_mask = [date.year == 2010 or date.year == 2011 or
              date.year == 2012 for date in input_swbm['time']]
@@ -207,54 +211,6 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 # plt.savefig('figs/model_selection/compare_runoffs.pdf')
-
-# visualize b0-model vs. constant-model vs. observed
-year_mask = [date.year == 2010 or date.year == 2011
-             for date in input_swbm['time']]
-x_ticks = input_swbm['time'][year_mask]
-
-fig, ax = plt.subplots(nrows=3, figsize=(9, 16))
-
-ax[0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000,
-           label='Observed')
-ax[0].plot(x_ticks, single_preds['b0']['sm'][year_mask],
-           label='B0-seasonal-model')
-ax[0].plot(x_ticks, moists[year_mask],
-           label='Constant model')
-ax[0].set_title('Soil moisture')
-ax[0].legend()
-
-ax[1].plot(x_ticks, input_swbm['le'][year_mask],
-           label='Observed')
-ax[1].plot(x_ticks, single_preds['b0']['le'][year_mask],
-           label='B0-seasonal-model')
-ax[1].plot(x_ticks, ets[year_mask],
-           label='Constant model')
-ax[1].set_title('Evapotranspiration')
-ax[1].legend()
-
-ax[2].plot(x_ticks, input_swbm['ro'][year_mask],
-           label='Observed')
-ax[2].plot(x_ticks,
-           single_preds['b0']['ro'][year_mask],
-           label='B0-seasonal-model')
-ax[2].plot(x_ticks, runoffs[year_mask],
-           label='Constant model')
-ax[2].set_title('Runoff')
-ax[2].legend()
-
-plt.tight_layout()
-plt.show()
-
-print(opt_params_dfs['b0'])
-
-seasonal_b0 = seasonal_sinus(360 * 2,
-                             amplitude=opt_params_dfs['b0']['amplitude'],
-                             freq=opt_params_dfs['b0']['freq'],
-                             phase=opt_params_dfs['b0']['phase'],
-                             center=opt_params_dfs['b0']['center'], which='b0')
-# plot our sinus for B0
-plt.plot(range(360 * 2), seasonal_b0)
 
 # %%
 # -- some plots
