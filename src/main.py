@@ -54,9 +54,10 @@ swbm_param = 'b0'
 
 # search different solvers
 
-solvers = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B',
-           'TNC', 'COBYLA', 'SLSQP', 'trust-constr', 'dogleg', 'trust-exact',
-           'trust-exact', 'trust-krylov']
+solvers = ['Nelder-Mead']
+# , 'Powell', 'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B',
+# 'TNC', 'COBYLA', 'SLSQP', 'trust-constr', 'dogleg', 'trust-exact',
+# 'trust-exact', 'trust-krylov']
 max_corr = -np.inf
 for solver in solvers:
     init_values = [0.5, 2, 5, 0.8]
