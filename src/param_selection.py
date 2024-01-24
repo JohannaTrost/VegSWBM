@@ -9,7 +9,6 @@ from src.swbm import *
 from src.plots import *
 from src.utils import *
 
-
 # %%
 # Load and pre-process data
 input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
@@ -33,6 +32,9 @@ eval_df = eval_swbm(input_swbm,
 param_opt_sin_init = {'b0': [0.5, 2, 5, 0.8],
                       'g': [0.1, 2, 5, 0.5],
                       'a': [1, 2, 5, 4]}
+
+single_preds = {'b0': {}, 'g': {}, 'a': {}}
+opt_params_dfs = {'b0': {}, 'g': {}, 'a': {}}
 
 for swbm_param, init_values in param_opt_sin_init.items():
     np.random.seed(42)
@@ -58,11 +60,17 @@ for swbm_param, init_values in param_opt_sin_init.items():
     # Run SWBM
     preds_seasonal = predict_ts(input_swbm, params_seasonal)
     moists_seasonal, runoffs_seasonal, ets_seasonal = preds_seasonal
+
+    single_preds[swbm_param]['sm'] = moists_seasonal
+    single_preds[swbm_param]['ro'] = runoffs_seasonal
+    single_preds[swbm_param]['le'] = ets_seasonal
+
+    for param in ['amplitude', 'freq', 'phase', 'center']:
+        opt_params_dfs[swbm_param][param] = opt_params_df.loc[param, swbm_param]
+
     # Test correlation
     eval_df = pd.concat((eval_df, eval_swbm(input_swbm,
-                                            {'sm': moists_seasonal,
-                                             'ro': runoffs_seasonal,
-                                             'le': ets_seasonal},
+                                            single_preds[swbm_param],
                                             swbm_param)))
 
 # %%
@@ -106,6 +114,8 @@ preds_seasonal_all = {'sm': preds_all[0],
 # get correlations
 eval_df = pd.concat((eval_df, eval_swbm(input_swbm, preds_seasonal_all, 'all')))
 
+# %%
+
 # ---- Optimize all except for one parameter
 
 init_sinus_params_all = np.asarray(init_sinus_params_all)
@@ -143,6 +153,7 @@ for i, swbm_param in enumerate(make_seasonal_all):
     eval_df = pd.concat(
         (eval_df, eval_swbm(input_swbm, preds_seasonal, f'not {swbm_param}')))
 
+# %%
 # get parameter importance
 reference_corr = (eval_df[(eval_df['parameter'] == 'all')
                           & (eval_df['kind'] == 'sm')]['corr'].values[0])
@@ -179,49 +190,26 @@ ax.set_ylabel('Correlation')
 
 # Show the plot
 plt.show()
-plt.savefig('figs/model_selection/all_corr.pdf')
+# plt.savefig('figs/model_selection/all_corr.pdf')
 plt.close('all')
 
+# %%
 # whats wrong with runoff
-input_swbm_time = input_swbm.copy()
-input_swbm_time['time'] = [date.format('YYYY-MM-DD')
-                            for date in input_swbm['time']]
-year_mask = [arrow.get(date).year == 2010 or arrow.get(date).year == 2011 or
-             arrow.get(date).year == 2012 for date in input_swbm['time']]
-plt.plot(input_swbm_time['time'][year_mask], input_swbm_time['ro'][year_mask],
+year_mask = [date.year == 2010 or date.year == 2011 or
+             date.year == 2012 for date in input_swbm['time']]
+
+plt.plot(input_swbm['time'][year_mask], input_swbm['ro'][year_mask],
          label='Observed')
-plt.plot(input_swbm_time['time'][year_mask], runoffs_seasonal[year_mask],
+plt.plot(input_swbm['time'][year_mask], single_preds['a']['ro'][year_mask],
          label='Sinus Alpha')
-plt.plot(input_swbm_time['time'][year_mask], preds_all[1][year_mask],
+plt.plot(input_swbm['time'][year_mask], preds_all[1][year_mask],
          label='All')
-plt.plot(input_swbm_time['time'][year_mask], runoffs[year_mask],
+plt.plot(input_swbm['time'][year_mask], runoffs[year_mask],
          label='Constant Alpha')
+plt.xticks(rotation=45)
 plt.legend()
 plt.tight_layout()
 plt.show()
-plt.savefig('figs/model_selection/compare_runoffs.pdf')
+# plt.savefig('figs/model_selection/compare_runoffs.pdf')
 
-# %%
-# -- some plots
 
-# only show one year
-
-# fig, ax = plt.subplots()
-# ax.set_title('Seasonal Beta')
-# ax.scatter(moists_seasonal[year_mask],
-#            ets_seasonal[year_mask], label='ET/Rnet', alpha=0.5)
-# ax.scatter(moists_seasonal[year_mask],
-#            runoffs[year_mask], label='Runoff (Q)', alpha=0.5)
-# ax.set_xlabel('Soil moisture(mm)')
-# plt.legend()
-# plt.tight_layout()
-# # plt.savefig('figs/b0_seasonal_rel.pdf')
-#
-# fig, ax = plt.subplots()
-# ax.set_title('Seasonal Beta')
-# plot_time_series(moists_seasonal[year_mask], ets_seasonal[year_mask],
-#                  runoffs[year_mask], ax)
-# ax.set_ylabel('Soil moisture(mm)')
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('figs/b0_seasonal_ts_2010.pdf')

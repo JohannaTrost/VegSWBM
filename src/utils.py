@@ -59,7 +59,7 @@ def prepro(raw_data):
     :return: pre-processed data (pandas df)
     """
 
-    data = {'time': [arrow.get(date) for date in raw_data['time']],
+    data = {'time': pd.to_datetime(raw_data['time']),
             'lat': raw_data['latitude'],
             'long': raw_data['longitude'],
             'tp': raw_data['tp_[mm]'],
@@ -103,16 +103,19 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
                                        which=param)
 
     # Run SWBM
-    out_sm, out_ro, _ = predict_ts(data, params)
-    if ('a' in seasonal_param and 'c_s' in seasonal_param
-            and len(seasonal_param) == 2):
+    out_sm, out_ro, out_et = predict_ts(data, params)
+    if 'a' in seasonal_param and len(seasonal_param) == 1:
         # only optimize runoff
-        corr, pval = pearsonr(out_ro, data['ro'])
+        score, pval = pearsonr(out_ro, data['ro'])
     else:
-        corr, pval = pearsonr(out_sm, data['sm'])
+        corr_sm, pval = pearsonr(out_sm, data['sm'])
+        corr_ro, _ = pearsonr(out_ro, data['ro'])
+        corr_et, _ = pearsonr(out_et, data['le'])
+        # include ro and et
+        score = 1 * corr_sm + 0 * corr_ro + 0 * corr_et
 
     if pval > 0.05:
         print(f'No corr. P={pval}')
 
-    return corr * -1  # to get maximum
+    return score * -1  # to get maximum
 

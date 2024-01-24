@@ -14,15 +14,17 @@ def predict(curr_moist, evapo, wrunoff, precip, rad):
 
 
 def constrain_swbm_params(param_vals, which):
+    max_val, min_val = max(param_vals), min(param_vals)
     if which == 'g':
-        if min(param_vals) <= 0:
-            param_vals += 1e-5 - min(param_vals)  # ensure gamma > 0
+        if min_val <= 0:
+            param_vals -= (1e-5 + min_val)  # ensure gamma > 0
     elif which == 'b0':
-        if max(param_vals) > 1:
-            param_vals -= max(param_vals) - 1  # ensure b0 <= 1
+        if max_val > 1:
+            # Rescale the array between 1e-05 and 1
+            param_vals /= max_val
     else:
-        if min(param_vals) < 0:
-            param_vals += 0 - min(param_vals)  # ensure alpha and c_s >= 0
+        if min_val < 0:
+            param_vals -= min_val  # ensure alpha and c_s >= 0
     return param_vals
 
 

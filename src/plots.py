@@ -35,7 +35,6 @@ def plot_avg_scores(scores, save=None):
     eval_df_avg_sorted = eval_df_avg.sort_values(by='corr', ascending=False)
 
     # Plot single opt results
-    plt.figure(figsize=(10, 6))
     ax = sns.barplot(data=eval_df_avg_sorted, x='corr', y='parameter_label',
                      palette='viridis')
 
@@ -83,7 +82,6 @@ def plot_param_importance(importances, save=None):
                                           ascending=False)
 
     # Create the bar plot
-    plt.figure(figsize=(10, 6))
     ax = sns.barplot(x='feature_importance', y='parameter_label',
                      data=importances, color='skyblue')
 
@@ -122,7 +120,7 @@ def plot_time_series(soil_moist, evapo_trans, prec_runoff, ax):
 
     ax2.set_ylabel('mm per day')
 
-    return ax2
+    return ax, ax2
 
 
 def plot_relation(soil_moist, evapo_trans, prec_runoff, ax):
