@@ -128,3 +128,16 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
 
     return score * -1  # to get maximum
 
+
+def get_period(start, end, data, time_col):
+    """Extract time period of data
+
+    :param start: start point ie. '2010-01-01'
+    :param end: end point ie. '2015-12-31'
+    :param data: dataframe to extract from
+    :param time_col: index of time column of dataframe ie. 'time'
+    :return: subset dataframe with desired timeperiod
+    """
+    result = data[(data[time_col] >= start) &
+                  (data[time_col] <= end)]
+    return(result)
