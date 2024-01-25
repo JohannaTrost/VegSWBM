@@ -91,4 +91,9 @@ def predict_ts(data, config, n_days=None):
             moists[i + 1] = predict(moists[i], ets[i], runoffs[i],
                                     data['tp'][i], data['snr'][i])
 
-    return moists, runoffs, ets
+        # Deal with na values
+        na_count = {'sm': np.sum(np.isnan(moists)),
+                    'le': np.sum(np.isnan(ets)),
+                    'ro': np.sum(np.isnan(runoffs))}
+
+    return moists, runoffs, ets, na_count

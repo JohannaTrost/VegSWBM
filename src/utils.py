@@ -103,7 +103,13 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
                                        which=param)
 
     # Run SWBM
-    out_sm, out_ro, out_et = predict_ts(data, params)
+    out_sm, out_ro, out_et, na_counts = predict_ts(data, params)
+
+    # Deal with NAs
+    out_sm[np.isnan(out_sm)] = 0 if na_counts['sm'] > 0 else out_sm
+    out_et[np.isnan(out_et)] = 0 if na_counts['le'] > 0 else out_et
+    out_ro[np.isnan(out_ro)] = 0 if na_counts['ro'] > 0 else out_ro
+
     if 'a' in seasonal_param and len(seasonal_param) == 1:
         # only optimize runoff
         score, pval = pearsonr(out_ro, data['ro'])

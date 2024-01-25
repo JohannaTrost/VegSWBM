@@ -19,11 +19,11 @@ input_swbm = prepro(input_swbm_raw)
 
 # %%
 # ---- Single parameter optimization
-const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
+const_swbm_params = {'c_s': 210, 'b0': 0.8, 'g': .5, 'a': 4}
 
 # %%
 # Run SWBM without seasonal variation
-moists, runoffs, ets = predict_ts(input_swbm, const_swbm_params)
+moists, runoffs, ets, _ = predict_ts(input_swbm, const_swbm_params)
 eval_df = eval_swbm(input_swbm,
                     {'sm': moists, 'ro': runoffs, 'le': ets},
                     'None\nSeasonal')
@@ -41,7 +41,7 @@ solvers = ['Nelder-Mead']
 max_corr = -np.inf
 for solver in solvers:
     init_values = [0.5, 2, 5, 0.8]
-    const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
+    const_swbm_params = {'c_s': 210, 'b0': 0.8, 'g': .2, 'a': 4}
 
     res = minimize(opt_swbm_corr,
                    init_values,
@@ -51,8 +51,8 @@ for solver in solvers:
 
     # Set swbm const_swbm_params
     curr_params_seasonal = {
-        'c_s': 420,
-        'g': .5,
+        'c_s': 210,
+        'g': .2,
         'a': 4,
         'b0': seasonal_sinus(
             len(input_swbm),
@@ -66,7 +66,7 @@ for solver in solvers:
 
     # Run SWBM
     preds_seasonal = predict_ts(input_swbm, curr_params_seasonal)
-    moists_seasonal, runoffs_seasonal, ets_seasonal = preds_seasonal
+    moists_seasonal, runoffs_seasonal, ets_seasonal, _ = preds_seasonal
 
     # Test correlation
     curr_corr, _ = pearsonr(input_swbm['sm'], moists_seasonal)

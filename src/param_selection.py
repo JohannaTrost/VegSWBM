@@ -21,7 +21,7 @@ const_swbm_params = {'c_s': 420, 'b0': 0.8, 'g': .5, 'a': 4}
 # %%
 
 # Run SWBM without seasonal variation
-moists, runoffs, ets = predict_ts(input_swbm, const_swbm_params)
+moists, runoffs, ets, _ = predict_ts(input_swbm, const_swbm_params)
 eval_df = eval_swbm(input_swbm,
                     {'sm': moists, 'ro': runoffs, 'le': ets},
                     'None\nSeasonal')
@@ -59,7 +59,7 @@ for swbm_param, init_values in param_opt_sin_init.items():
 
     # Run SWBM
     preds_seasonal = predict_ts(input_swbm, params_seasonal)
-    moists_seasonal, runoffs_seasonal, ets_seasonal = preds_seasonal
+    moists_seasonal, runoffs_seasonal, ets_seasonal, _ = preds_seasonal
 
     single_preds[swbm_param]['sm'] = moists_seasonal
     single_preds[swbm_param]['ro'] = runoffs_seasonal
@@ -147,7 +147,7 @@ for i, swbm_param in enumerate(make_seasonal_all):
         )
 
     # Run SWBM
-    model_sm, model_ro, model_le = predict_ts(input_swbm, opt_sinus)
+    model_sm, model_ro, model_le, _ = predict_ts(input_swbm, opt_sinus)
     preds_seasonal = {'sm': model_sm, 'ro': model_ro, 'le': model_le}
     # get correlations
     eval_df = pd.concat(
