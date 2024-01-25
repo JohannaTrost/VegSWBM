@@ -90,10 +90,14 @@ def predict_ts(data, config, n_days=None):
         if i < n_days - 1:
             moists[i + 1] = predict(moists[i], ets[i], runoffs[i],
                                     data['tp'][i], data['snr'][i])
+            # avoid negative sm
+            moists[i + 1] = 0 if moists[i + 1] < 0 else moists[i + 1]
 
-        # Deal with na values
-        na_count = {'sm': np.sum(np.isnan(moists)),
-                    'le': np.sum(np.isnan(ets)),
-                    'ro': np.sum(np.isnan(runoffs))}
+
+
+    # Deal with na values
+    na_count = {'sm': np.sum(np.isnan(moists)),
+                'le': np.sum(np.isnan(ets)),
+                'ro': np.sum(np.isnan(runoffs))}
 
     return moists, runoffs, ets, na_count
