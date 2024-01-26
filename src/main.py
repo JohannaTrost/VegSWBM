@@ -40,8 +40,8 @@ solvers = ['Nelder-Mead']
 # 'trust-exact', 'trust-krylov']
 max_corr = -np.inf
 for solver in solvers:
-    init_values = [0.5, 2, 5, 0.8]
-    const_swbm_params = {'c_s': 210, 'b0': 0.8, 'g': .2, 'a': 4}
+    init_values = [0.8, 2, 5, 0.2]
+    const_swbm_params = {'c_s': 210, 'b0': 0.2, 'g': .2, 'a': 4}
 
     res = minimize(opt_swbm_corr,
                    init_values,
@@ -86,29 +86,30 @@ eval_df = pd.concat((eval_df, eval_swbm(input_swbm, b0_model_preds, 'b0')))
 
 # %%
 # visualize b0-model vs. constant-model vs. observed
-year_mask = [date.year == 2010 or date.year == 2011
-             for date in input_swbm['time']]
+year_mask = [date.year == 2009 for date in input_swbm['time']]
 x_ticks = input_swbm['time'][year_mask]
 
-fig, ax = plt.subplots(nrows=3, figsize=(3, 9))
+fig, ax = plt.subplots(2, 2, figsize=(16, 9))
 
-ax[0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000, label='Observed')
-ax[0].plot(x_ticks, b0_model_preds['sm'][year_mask], label='B0-seasonal-model')
-ax[0].plot(x_ticks, moists[year_mask], label='Constant model')
-ax[0].set_title('Soil moisture')
-ax[0].legend()
+ax[0, 0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000, label='Observed')
+ax[0, 0].plot(x_ticks, b0_model_preds['sm'][year_mask], label='B0-seasonal-model')
+ax[0, 0].plot(x_ticks, moists[year_mask], label='Constant model')
+ax[0, 0].set_title('Soil moisture')
+ax[0, 0].legend()
 
-ax[1].plot(x_ticks, input_swbm['le'][year_mask], label='Observed')
-ax[1].plot(x_ticks, b0_model_preds['le'][year_mask], label='B0-seasonal-model')
-ax[1].plot(x_ticks, ets[year_mask], label='Constant model')
-ax[1].set_title('Evapotranspiration')
-ax[1].legend()
+ax[0, 1].plot(x_ticks, input_swbm['le'][year_mask], label='Observed')
+ax[0, 1].plot(x_ticks, b0_model_preds['le'][year_mask], label='B0-seasonal-model')
+ax[0, 1].plot(x_ticks, ets[year_mask], label='Constant model')
+ax[0, 1].set_title('Evapotranspiration')
+ax[0, 1].legend()
 
-ax[2].plot(x_ticks, input_swbm['ro'][year_mask], label='Observed')
-ax[2].plot(x_ticks, b0_model_preds['ro'][year_mask], label='B0-seasonal-model')
-ax[2].plot(x_ticks, runoffs[year_mask], label='Constant model')
-ax[2].set_title('Runoff')
-ax[2].legend()
+ax[1, 0].plot(x_ticks, input_swbm['ro'][year_mask], label='Observed')
+ax[1, 0].plot(x_ticks, b0_model_preds['ro'][year_mask], label='B0-seasonal-model')
+ax[1, 0].plot(x_ticks, runoffs[year_mask], label='Constant model')
+ax[1, 0].set_title('Runoff')
+ax[1, 0].legend()
+
+ax[1, 1].set_visible(False)
 
 plt.tight_layout()
 plt.show()
@@ -123,8 +124,6 @@ plt.xticks(rotation=45)
 plt.show()
 
 # %%
-year_mask = [date.year == 2010 for date in input_swbm['time']]
-
 fig, ax = plt.subplots()
 ax.set_title('Seasonal Beta')
 ax.scatter(b0_model_preds['sm'][year_mask],
