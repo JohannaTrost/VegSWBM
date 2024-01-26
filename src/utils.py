@@ -113,17 +113,15 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     if na_counts['ro'] > 0:
         out_ro[np.isnan(out_ro)] = 0
 
+    # optimize for runoff correlation if only runoff shape param. seasonal
     if 'a' in seasonal_param and len(seasonal_param) == 1:
         # only optimize runoff
         score, pval = pearsonr(out_ro, data['ro'])
-    else:
+    else:  # optimize for all parameters
         corr_sm, pval = pearsonr(out_sm, data['sm'])
         corr_ro, _ = pearsonr(out_ro, data['ro'])
         corr_et, _ = pearsonr(out_et, data['le'])
         # include ro and et
-        score = 1 * corr_sm + 0 * corr_ro + 0 * corr_et
-
-    if pval > 0.05:
-        print(f'No corr. P={pval}')
+        score = 1 * corr_sm + 1 * corr_ro + 1 * corr_et
 
     return score * -1  # to get maximum
