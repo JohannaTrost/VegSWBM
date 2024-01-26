@@ -100,4 +100,4 @@ def predict_ts(data, config, n_days=None):
                 'le': np.sum(np.isnan(ets)),
                 'ro': np.sum(np.isnan(runoffs))}
 
-    return moists, runoffs, ets, na_count
+    return moists, runoffs * np.asarray(data['tp']), ets * np.asarray(data['snr']), na_count
