@@ -63,7 +63,7 @@ def prepro(raw_data):
             'lat': raw_data['latitude'],
             'long': raw_data['longitude'],
             'tp': raw_data['tp_[mm]'],
-            'sm': raw_data['sm_[m3/m3]'],
+            'sm': raw_data['sm_[m3/m3]'] * 1000,
             'ro': raw_data['ro_[m]'] * 24000,
             'le': raw_data['le_[W/m2]'] * (86400 / 2260000),
             # 86400 (seconds) / 2260000 (latent heat of vaporization
