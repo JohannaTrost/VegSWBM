@@ -93,8 +93,6 @@ def predict_ts(data, config, n_days=None):
             # avoid negative sm
             moists[i + 1] = 0 if moists[i + 1] < 0 else moists[i + 1]
 
-
-
     # Deal with na values
     na_count = {'sm': np.sum(np.isnan(moists)),
                 'le': np.sum(np.isnan(ets)),
