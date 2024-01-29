@@ -6,12 +6,6 @@
 `git clone https://github.com/JohannaTrost/VegSWBM.git`
 
 `cd VegSWBM`
-### gespräch mit rene:
-beta most impact?
-first of all single seasonal parameter variation
-c_s no seasonal variation (small?)
-
-when beta is most important check other sites
 
 ## Final plots
 Feature importance
@@ -22,37 +16,28 @@ Observed vs Initial vs Seasonal
     -> ET
 
 optimized sinus function for Beta (in methods)
-    
-
-## maby:
-
-first fit and optimize paramters for functions within Swbm 
 
 ## Approach:
 
--> seasonal variation for beta gamma alpha and c_s
-
--> seasonal variation in form of sinus function
-
--> optimizing sinus function parameters (amplitude, frequency, phase and offset) for best possible correlation between Swbm output and true values (soil moisture and evapotranspiration)
+- seasonal variation for beta gamma alpha and c_s
+- seasonal variation in form of sinus function
+- optimizing sinus function parameters (amplitude, frequency, phase and offset) for best possible correlation between Swbm output and true values (sum of ro, sm and le)
+- compute feature importances (corr of all SWBM param as seasonal - corr with one non-seasonal)
+- only chose Beta0 as it was most important 
 
 ## to do:
 
--> compute **feature importance** e.g. with partical dependence (idea: predict with all seasonal and fixing one and report difference of correlation)
-
--> split data in test and training set (Rene fragen?)
-
--> if necessary adjust optimization for more "realism" ie. add conditions to function parameters (maximum amplitude)
-
--> fix cetrain sinus function paramters (ie. phase)
-
--> weighted importance of correlation for sm and et
-
--> test model on diffrent datasets 
-
--> test diffrent random seeds
-
--> check if range of seasonal variation of parameters are physicly possible **DONE**
+- check out ro/sm/et plots of all 3 grid cells
+- **DONE** Tried cutting of Beta0 to fit constraints instead of shifting/normalizing: no improvement/difference
+- **DONE** Try RMSE: resulted in Beta being 1 always, no improvement in correlation, looked bad too (see figs)
+- **DONE** compute **feature importance** e.g. with partical dependence (idea: predict with all seasonal and fixing one and report difference of correlation)
+- **DONE** split data in test and training set (Rene fragen?)
+- **DONE** if necessary adjust optimization for more "realism" ie. add conditions to function parameters (maximum amplitude)
+- fix cetrain sinus function paramters (ie. phase)
+- **DONE** weighted importance of correlation for sm and et
+- test model on diffrent datasets
+- test diffrent random seeds
+- **DONE** check if range of seasonal variation of parameters are physicly possible **DONE**
 
 ## thoughts for the poster:
 -> case study
