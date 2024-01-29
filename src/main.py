@@ -2,6 +2,9 @@
 # os.chdir('..')
 # %%
 # Imports
+import json
+import os
+
 from scipy.optimize import minimize
 
 from src.plots import *
@@ -10,141 +13,127 @@ from src.utils import *
 np.random.seed(42)
 
 # %%
-# Load and pre-process data
-input_swbm_raw = pd.read_csv('data/Data_swbm_Germany.csv')
-input_swbm = prepro(input_swbm_raw)
 
-# %%
-# Calibration (opt c_s, g, a, b0 seasonal)
+# Paths
+data_paths = [os.path.join('data', 'Data_swbm_Germany.csv'),
+              os.path.join('data', 'Data_swbm_Spain.csv'),
+              os.path.join('data', 'Data_swbm_Sweden.csv')]
+calib_params_paths = [os.path.join('results', 'ger_output.json'),
+                      os.path.join('results', 'esp_output.json'),
+                      os.path.join('results', 'swe_output.json')]
 
-# %%
-# ---- Single parameter optimization
-const_swbm_params = {'c_s': 210, 'b0': 0.8, 'g': .5, 'a': 4}
+for data_path, calib_params_path in zip(data_paths, calib_params_paths):
+    # Load and pre-process data
+    input_swbm_raw = pd.read_csv(data_path)
+    input_swbm = prepro(input_swbm_raw)
 
-# %%
-# Run SWBM without seasonal variation
-moists, runoffs, ets, _ = predict_ts(input_swbm, const_swbm_params)
-eval_df = eval_swbm(input_swbm,
-                    {'sm': moists, 'ro': runoffs, 'le': ets},
-                    'None\nSeasonal')
+    # %%
 
-# ---- Seasonal Variation for single parameter
-# %%
-swbm_param = 'b0'
+    with open(calib_params_path, 'r') as json_file:
+        calib_out = json.load(json_file)
 
-# search different solvers
+    const_swbm_params = calib_out[0].copy()
+    sinus_params = calib_out[-1].copy()
 
-solvers = ['Nelder-Mead']
-# , 'Powell', 'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B',
-# 'TNC', 'COBYLA', 'SLSQP', 'trust-constr', 'dogleg', 'trust-exact',
-# 'trust-exact', 'trust-krylov']
-max_corr = -np.inf
-for solver in solvers:
-    init_values = [0.8, 2, 5, 0.2]
-    const_swbm_params = {'c_s': 210, 'b0': 0.2, 'g': .2, 'a': 4}
+    # %%
+    # Run SWBM without seasonal variation
+    moists, runoffs, ets, _ = predict_ts(input_swbm, const_swbm_params)
+    eval_df = eval_swbm(input_swbm,
+                        {'sm': moists, 'ro': runoffs, 'le': ets},
+                        'None\nSeasonal')
 
-    res = minimize(opt_swbm_corr,
-                   init_values,
-                   args=(input_swbm, const_swbm_params, swbm_param),
-                   options={"maxiter": 500, "disp": True})
-    curr_opt_params_df = minimize_res2df(res, [swbm_param])
-
-    # Set swbm const_swbm_params
-    curr_params_seasonal = {
-        'c_s': 210,
-        'g': .2,
-        'a': 4,
+    # %%
+    # Run SWBM with seasonal variation of B0
+    swbm_param = 'b0'
+    params_seasonal = {
+        'c_s': const_swbm_params['c_s'],
+        'g': const_swbm_params['g'],
+        'a': const_swbm_params['a'],
         'b0': seasonal_sinus(
             len(input_swbm),
-            amplitude=curr_opt_params_df.loc['amplitude', swbm_param],
-            freq=curr_opt_params_df.loc['freq', swbm_param],
-            phase=curr_opt_params_df.loc['phase', swbm_param],
-            center=curr_opt_params_df.loc['center', swbm_param],
-            which=swbm_param
+            amplitude=sinus_params['amplitude'],
+            freq=sinus_params['freq'],
+            phase=sinus_params['phase'],
+            center=sinus_params['center'],
+            which='b0'
         )
     }
 
     # Run SWBM
-    preds_seasonal = predict_ts(input_swbm, curr_params_seasonal)
-    moists_seasonal, runoffs_seasonal, ets_seasonal, _ = preds_seasonal
+    preds_seasonal = predict_ts(input_swbm, params_seasonal)
+    b0_model_preds = {'sm': preds_seasonal[0],
+                      'ro': preds_seasonal[1],
+                      'le': preds_seasonal[2]}
+    eval_df = pd.concat((eval_df, eval_swbm(input_swbm, b0_model_preds, 'b0')))
 
-    # Test correlation
-    curr_corr, _ = pearsonr(input_swbm['sm'], moists_seasonal)
+    print(data_path)
 
-    print(curr_corr)
+    pd.DataFrame(b0_model_preds).to_csv(
+        os.path.join('data', 'output', os.path.basename(data_path)))
 
-    # check if is better
-    if curr_corr > max_corr:
-        max_corr = curr_corr
-        b0_model_preds = {'sm': moists_seasonal,
-                          'ro': runoffs_seasonal,
-                          'le': ets_seasonal}
-        params_seasonal = curr_params_seasonal
-        opt_params_df = curr_opt_params_df
+    # %%
+    # visualize b0-model vs. constant-model vs. observed
+    year_mask = [date.year == 2009 for date in input_swbm['time']]
+    x_ticks = input_swbm['time'][year_mask]
 
-eval_df = pd.concat((eval_df, eval_swbm(input_swbm, b0_model_preds, 'b0')))
+    fig, ax = plt.subplots(2, 2, figsize=(16, 9))
 
-# %%
-# visualize b0-model vs. constant-model vs. observed
-year_mask = [date.year == 2009 for date in input_swbm['time']]
-x_ticks = input_swbm['time'][year_mask]
+    ax[0, 0].plot(x_ticks, input_swbm['sm'][year_mask], label='Observed')
+    ax[0, 0].plot(x_ticks, b0_model_preds['sm'][year_mask],
+                  label='B0-seasonal-model')
+    ax[0, 0].plot(x_ticks, moists[year_mask], label='Constant model')
+    ax[0, 0].set_title('Soil moisture')
+    ax[0, 0].legend()
 
-fig, ax = plt.subplots(2, 2, figsize=(16, 9))
+    ax[0, 1].plot(x_ticks, input_swbm['le'][year_mask], label='Observed')
+    ax[0, 1].plot(x_ticks, b0_model_preds['le'][year_mask],
+                  label='B0-seasonal-model')
+    ax[0, 1].plot(x_ticks, ets[year_mask], label='Constant model')
+    ax[0, 1].set_title('Evapotranspiration')
+    ax[0, 1].legend()
 
-ax[0, 0].plot(x_ticks, input_swbm['sm'][year_mask] * 1000, label='Observed')
-ax[0, 0].plot(x_ticks, b0_model_preds['sm'][year_mask], label='B0-seasonal-model')
-ax[0, 0].plot(x_ticks, moists[year_mask], label='Constant model')
-ax[0, 0].set_title('Soil moisture')
-ax[0, 0].legend()
+    ax[1, 0].plot(x_ticks, input_swbm['ro'][year_mask], label='Observed')
+    ax[1, 0].plot(x_ticks, b0_model_preds['ro'][year_mask],
+                  label='B0-seasonal-model')
+    ax[1, 0].plot(x_ticks, runoffs[year_mask], label='Constant model')
+    ax[1, 0].set_title('Runoff')
+    ax[1, 0].legend()
 
-ax[0, 1].plot(x_ticks, input_swbm['le'][year_mask], label='Observed')
-ax[0, 1].plot(x_ticks, b0_model_preds['le'][year_mask], label='B0-seasonal-model')
-ax[0, 1].plot(x_ticks, ets[year_mask], label='Constant model')
-ax[0, 1].set_title('Evapotranspiration')
-ax[0, 1].legend()
+    ax[1, 1].set_visible(False)
 
-ax[1, 0].plot(x_ticks, input_swbm['ro'][year_mask], label='Observed')
-ax[1, 0].plot(x_ticks, b0_model_preds['ro'][year_mask], label='B0-seasonal-model')
-ax[1, 0].plot(x_ticks, runoffs[year_mask], label='Constant model')
-ax[1, 0].set_title('Runoff')
-ax[1, 0].legend()
+    plt.tight_layout()
+    plt.show()
 
-ax[1, 1].set_visible(False)
+    # %%
+    # plot our sinus for B0
+    plt.plot(x_ticks, params_seasonal['b0'][year_mask])
+    plt.xticks(rotation=45)
+    plt.show()
 
-plt.tight_layout()
-plt.show()
+    # %%
+    fig, ax = plt.subplots()
+    ax.set_title('Seasonal Beta')
+    ax.plot(b0_model_preds['sm'][year_mask],
+           b0_model_preds['le'][year_mask] / input_swbm['snr'][year_mask],
+           label='ET/Rnet', alpha=0.5)
+    ax.plot(b0_model_preds['sm'][year_mask],
+           b0_model_preds['ro'][year_mask] / input_swbm['tp'][year_mask],
+           label='Runoff (Q/P)', alpha=0.5)
+    ax.set_xlabel('Soil moisture(mm)')
+    plt.legend()
+    plt.tight_layout()
+    plt.close('all')
+    # plt.savefig('figs/b0_seasonal_rel.pdf')
 
-# %%
-print(params_seasonal['b0'])
-
-# %%
-# plot our sinus for B0
-plt.plot(x_ticks, params_seasonal['b0'])
-plt.xticks(rotation=45)
-plt.show()
-
-# %%
-fig, ax = plt.subplots()
-ax.set_title('Seasonal Beta')
-ax.scatter(b0_model_preds['sm'][year_mask],
-           b0_model_preds['le'][year_mask], label='ET/Rnet', alpha=0.5)
-ax.scatter(b0_model_preds['sm'][year_mask],
-           b0_model_preds['ro'][year_mask], label='Runoff (Q)', alpha=0.5)
-ax.set_xlabel('Soil moisture(mm)')
-plt.legend()
-plt.tight_layout()
-plt.close('all')
-# plt.savefig('figs/b0_seasonal_rel.pdf')
-
-fig, ax = plt.subplots()
-ax.set_title('Seasonal Beta')
-ax, ax2 = plot_time_series(b0_model_preds['sm'][year_mask],
-                         b0_model_preds['le'][year_mask],
-                         b0_model_preds['ro'][year_mask], ax)
-ax.plot(range(365), input_swbm['sm'][year_mask] * 1000, label='True sm',
-        linestyle='dashed', color='grey', alpha=0.5)
-ax.set_ylabel('Soil moisture(mm)')
-ax.legend()
-ax2.legend()
-plt.tight_layout()
-# plt.savefig('figs/b0_seasonal_ts_2010.pdf')
+    fig, ax = plt.subplots()
+    ax.set_title('Seasonal Beta')
+    ax, ax2 = plot_time_series(b0_model_preds['sm'][year_mask],
+                               b0_model_preds['le'][year_mask],
+                               b0_model_preds['ro'][year_mask], ax)
+    ax.plot(range(365), input_swbm['sm'][year_mask], label='True sm',
+            linestyle='dashed', color='grey', alpha=0.5)
+    ax.set_ylabel('Soil moisture(mm)')
+    ax.legend()
+    ax2.legend()
+    plt.tight_layout()
+    # plt.savefig('figs/b0_seasonal_ts_2010.pdf')
