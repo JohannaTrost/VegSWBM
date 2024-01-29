@@ -5,8 +5,6 @@
 import json
 import os
 
-from scipy.optimize import minimize
-
 from src.plots import *
 from src.utils import *
 
