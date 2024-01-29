@@ -27,11 +27,13 @@ optimized sinus function for Beta (in methods)
 
 ## to do:
 
-- check out ro/sm/et plots of all 3 grid cells
+- optimize parameters for evapotranspiration only and fix them during calibration (except for center (?)).
+- results notebook: do all plots and corr. only for the test period!!
+- **DONE** check out ro/sm/et plots of all 3 grid cells
 - **DONE** Tried cutting of Beta0 to fit constraints instead of shifting/normalizing: no improvement/difference
 - **DONE** Try RMSE: resulted in Beta being 1 always, no improvement in correlation, looked bad too (see figs)
 - **DONE** compute **feature importance** e.g. with partical dependence (idea: predict with all seasonal and fixing one and report difference of correlation)
-- **DONE** split data in test and training set (Rene fragen?)
+- **DONE** split data in validation, test and training set
 - **DONE** if necessary adjust optimization for more "realism" ie. add conditions to function parameters (maximum amplitude)
 - fix cetrain sinus function paramters (ie. phase)
 - **DONE** weighted importance of correlation for sm and et
