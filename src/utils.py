@@ -74,6 +74,37 @@ def prepro(raw_data):
     return pd.DataFrame(data)
 
 
+def transform_evals(input_data):
+    """ Transform function for evaluation """
+    output_data = [
+        input_data['Combination'],
+        {'sum_corr': input_data['sum_corr']},
+        {'sm_corr': input_data['eval_df']['corr'][0],
+         'ro_corr': input_data['eval_df']['corr'][1],
+         'le_corr': input_data['eval_df']['corr'][2]},
+        input_data['SinusParameters']
+    ]
+    return output_data
+
+
+def transform_data(input_data):
+    output_data = [
+        {'c_s': input_data['Combination'][0],
+         'b0': input_data['Combination'][1],
+         'g': input_data['Combination'][2],
+         'a': input_data['Combination'][3]},
+        {'sum_corr': input_data['sum_corr']},
+        {'sm_cor': input_data['eval_df']['corr'][0],
+         'ro_cor': input_data['eval_df']['corr'][1],
+         'le_cor': input_data['eval_df']['corr'][2]},
+        {'amplitude': input_data['SinusParameters']['b0']['amplitude'],
+         'freq': input_data['SinusParameters']['b0']['freq'],
+         'phase': input_data['SinusParameters']['b0']['phase'],
+         'center': input_data['SinusParameters']['b0']['center']}
+    ]
+    return output_data
+
+
 def opt_swbm_corr(inits, data, params, seasonal_param):
     """ Calculates correlation between Swbm with sesonal parameter variation
     and true values
@@ -117,6 +148,9 @@ def opt_swbm_corr(inits, data, params, seasonal_param):
     if 'a' in seasonal_param and len(seasonal_param) == 1:
         # only optimize runoff
         score, pval = pearsonr(out_ro, data['ro'])
+    elif 'b0' in seasonal_param and len(seasonal_param) == 1:
+        # only optimize ET
+        score, pval = pearsonr(out_et, data['le'])
     else:  # optimize for all parameters
         corr_sm, pval = pearsonr(out_sm, data['sm'])
         corr_ro, _ = pearsonr(out_ro, data['ro'])
