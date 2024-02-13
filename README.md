@@ -1,89 +1,50 @@
 # VegSWBM
 
-## Get the repo
-`cd <path/to/where/you/want/the/repo>`
+Evapotranspiration (ET) is a main driver of water fluxes in ecosystems and is essential for modelling soil moisture dynamics (4). ET can be partly described as a function of vegetation (3, 4). The seasonal patterns observed in ET, driven by factors such as transpiration capacity dependent on seasonally varying leaf area index (LAI) and stomatal conductance, present a crucial aspect of ecosystem water exchange dynamics (2, 4). The simple water balance model (SWBM) by Orth et al. (2013) does not account for these seasonal patterns.
+Here, we use a sinusoidal curve to modulate the maximum ET (denoted β₀ in the SWBM by Orth et al. (2013)) that limits the conversion of net radiation into ET accounting for e.g. water transport through vegetation.
 
-`git clone https://github.com/JohannaTrost/VegSWBM.git`
+We show that introducing seasonal variation of vegetation we could marginally improve seasonal ET patterns in different sites. However, this improvement is not necessarily linked to an improvement in modeled runoff and soil moisture patterns. 
 
-`cd VegSWBM`
+## Install
+1. `cd <path/to/where/you/want/the/repo>`
+2. `git clone https://github.com/JohannaTrost/VegSWBM.git`
+3. `cd VegSWBM`
+4. `pip install -r requirements`
 
-## Final plots
-Feature importance
+## Notebooks
 
-Observed vs Initial vs Seasonal
-    -> soil moisture
-    -> runoff
-    -> ET
+**results.ipynb**
 
-optimized sinus function for Beta (in methods)
+Here we present the correlations of runoff, soil moisture and evapotranspiration of our final calibrated model
+and ERA5 reanalysis data. We further compare VegSWBM to the original SWBM. In addition, we plot the 2018 time series of 
+VegSWBM, SWBM and the ERA5 data.
 
-## Approach:
+**calibration.ipynb and non_seasonal_calibration.ipynb**
 
-- seasonal variation for beta gamma alpha and c_s
-- seasonal variation in form of sinus function
-- optimizing sinus function parameters (amplitude, frequency, phase and offset) for best possible correlation between Swbm output and true values (sum of ro, sm and le)
-- compute feature importances (corr of all SWBM param as seasonal - corr with one non-seasonal)
-- only chose Beta0 as it was most important 
+In these notebooks we calibrated VegSWBM and the non-seasonal SWBM. For this we performed grid search over the following
+parameter space:
 
-## to do:
+- c_s: 210, 420, 840 (water holding capacity)
+- b0: 0.4, 0.6, 0.8 (limit of ET or max. ET)
+- γ: 0.2, 0.5, 0.8 (shape parameter of the ET function)
+- α: 2, 4, 8 (shape parameter of the runoff function)
 
-- optimize parameters for evapotranspiration only and fix them during calibration (except for center (?)).
-- results notebook: do all plots and corr. only for the test period!!
-- **DONE** check out ro/sm/et plots of all 3 grid cells
-- **DONE** Tried cutting of Beta0 to fit constraints instead of shifting/normalizing: no improvement/difference
-- **DONE** Try RMSE: resulted in Beta being 1 always, no improvement in correlation, looked bad too (see figs)
-- **DONE** compute **feature importance** e.g. with partical dependence (idea: predict with all seasonal and fixing one and report difference of correlation)
-- **DONE** split data in validation, test and training set
-- **DONE** if necessary adjust optimization for more "realism" ie. add conditions to function parameters (maximum amplitude)
-- fix cetrain sinus function paramters (ie. phase)
-- **DONE** weighted importance of correlation for sm and et
-- test model on diffrent datasets
-- test diffrent random seeds
-- **DONE** check if range of seasonal variation of parameters are physicly possible **DONE**
+Note that for VegSWBM we used the b0 values as the initial center value of the sine curve, which was then passed to 
+the optimizer (scipy's minimize function). The optimizer then maximized the correlation of ET of the model and ERA5 data.
+The remaining initial values of the sine curve were not calibrated (amplitude = 0.5, frequency = 2, phase = 5).
+For calibration we ran the model from 2008 to 2013 and computed the correlation during 2009 to 2013 (using 2008 as spin up year).
 
-## thoughts for the poster:
--> case study
+**model_test.ipynb**
 
--> introduction
+For the validation we ran the model with the best parameter set during 2013 to 2018 and computed the correlations during 
+2014 to 2018. The resulting model time series from 2013 to 2018 was then stored for the original SWBM and for our VegSWBM (in data/output).
+The resulting correlation values are available in the results folder. 
 
--> why vertain parameters seasonal
--> try to explain what the seasonal variation does 
--> influence on model output
+**param_selection.ipynb**
 
--> plot comparing model output and true values 
--> for all 3 datasets?
+Primary to all the above, we made the choice of only making B0 (ET limit) seasonal. We computed the partial dependence 
+of the seasonality for B0 and all other SWBM model parameters and found that making B0 seasonal did yield the most 
+important improvement.
 
--> table with correlations
-
--> plot seasonal variation of certain parameters
-
--> compare sinus functions of parameters
-
--> plot influance of seasonal variation
-
--> outlook box
-
--> references with qr-code
-
--> check evaluation sheet
--> canva? softweare
--> space!
--> print poster in A4 at first 
--> print at 12.02 Kostenstelle 11000200211 format A0
--> check evaluation sheet 
-
-
-## Tracking changes
-
-1. `git status` - prints your changes and all necessary information.
-2. `git add .` - will add all changes ("." means the current directory).
-3. `git add <file>` or `git add <folder>` - adds only a specific file or folder.
-4. `git status` - will now tell you that you have uncomitted changes or so.
-5. `git commit <file> -m "Put a useful message about your changes"` - "commiting" is an essential step to track all changes and their history (<file> can also be a folder and if you don't specify it all the things you "added" will be commited). Things that have not been added (with `git add`) cannot be commited!
-6. `git status` - if all you have committed all changes then `git status` will tell you.
-
-Now, your changes are well tracked! But only on you local computer! You need to push them to the remote repo to make them available for everyone:
-
-7. `git push`
 
 
