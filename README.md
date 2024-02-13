@@ -13,7 +13,7 @@ We show that introducing seasonal variation of vegetation we could marginally im
 1. `cd <path/to/where/you/want/the/repo>`
 2. `git clone https://github.com/JohannaTrost/VegSWBM.git`
 3. `cd VegSWBM`
-4. `pip install -r requirements`
+4. `pip install -r requirements.txt`
 
 ## Notebooks
 
