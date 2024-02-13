@@ -4,8 +4,8 @@
 
 # VegSWBM 
 
-Evapotranspiration (ET) is a main driver of water fluxes in ecosystems and is essential for modelling soil moisture dynamics (4). ET can be partly described as a function of vegetation (3, 4). The seasonal patterns observed in ET, driven by factors such as transpiration capacity dependent on seasonally varying leaf area index (LAI) and stomatal conductance, present a crucial aspect of ecosystem water exchange dynamics (2, 4). The simple water balance model (SWBM) by Orth et al. (2013) does not account for these seasonal patterns.
-Here, we use a sinusoidal curve to modulate the maximum ET (denoted β₀ in the SWBM by Orth et al. (2013)) that limits the conversion of net radiation into ET accounting for e.g. water transport through vegetation.
+Evapotranspiration (ET) is a main driver of water fluxes in ecosystems and is essential for modelling soil moisture dynamics (4). ET can be partly described as a function of vegetation (3, 4). The seasonal patterns observed in ET, driven by factors such as transpiration capacity dependent on seasonally varying leaf area index (LAI) and stomatal conductance, present a crucial aspect of ecosystem water exchange dynamics (2, 4). 
+Here, we introduce seasonal variation to the simple water balance model (SWBM) by Orth et al. (2013). For this, we use a sinusoidal curve to modulate the maximum ET (β₀) that limits the conversion of net radiation into ET accounting for e.g. water transport through vegetation.
 
 We show that introducing seasonal variation of vegetation we could marginally improve seasonal ET patterns in different sites. However, this improvement is not necessarily linked to an improvement in modeled runoff and soil moisture patterns. 
 
