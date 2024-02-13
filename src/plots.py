@@ -128,21 +128,3 @@ def plot_relation(soil_moist, evapo_trans, prec_runoff, ax):
     ax.plot(soil_moist, prec_runoff, label='Runoff')
 
     return ax
-
-# VISUALIZE sinus parameters
-# opt_sinus_all_df = pd.DataFrame(preds_seasonal_all)
-# opt_sinus_all_df['time'] = [date.format('YYYY-MM-DD')
-#                             for date in input_swbm['time']]
-# year_mask = [arrow.get(date).year == 2010 for date in opt_sinus_all_df['time']]
-#
-# # plot all sinus curves
-# melted_df = opt_sinus_all_df[year_mask].melt(var_name='SWBM parameter',
-#                                              value_name='Value',
-#                                              id_vars=['time'],
-#                                              ignore_index=False)
-# g = sns.relplot(data=melted_df, kind='line',
-#                 col='SWBM parameter', y='Value', x='time',
-#                 estimator=None, col_wrap=2,
-#                 facet_kws={'sharey': False, 'sharex': True})
-# g.set_xticklabels(rotation=90)
-# plt.show()

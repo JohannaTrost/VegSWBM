@@ -1,4 +1,3 @@
-import arrow
 import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
@@ -105,7 +104,7 @@ def transform_data(input_data):
     return output_data
 
 
-def opt_swbm_corr(inits, data, params, seasonal_param):
+def opt_swbm_corr(inits, data, params, seasonal_param, all_corr=False):
     """ Calculates correlation between Swbm with sesonal parameter variation
     and true values
 
